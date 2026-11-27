@@ -35,6 +35,15 @@ function getLocalDateStr(date = new Date()) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+// Helper: Normalize Chilean RUT without dots (e.g. 12345678-9)
+function normalizeRut(rut) {
+  return String(rut || '')
+    .replace(/\./g, '')
+    .replace(/[^0-9kK-]/g, '')
+    .trim()
+    .toUpperCase();
+}
 function getLocalIpAddresses() {
   const interfaces = os.networkInterfaces();
   const addresses = [];
@@ -158,7 +167,9 @@ app.delete('/api/services/:id', (req, res) => {
 // ----------------- CLIENTS ENDPOINTS -----------------
 app.get('/api/clients', (req, res) => {
   try {
-    const search = req.query.q ? `%${req.query.q}%` : null;
+    const rawQ = req.query.q ? req.query.q.trim() : '';
+    const search = rawQ ? `%${rawQ}%` : null;
+    const rutSearch = rawQ ? `%${normalizeRut(rawQ)}%` : null;
     let query = `
       SELECT c.*, 
              (SELECT COUNT(*) FROM orders o WHERE o.client_id = c.id) as orders_count
@@ -167,8 +178,8 @@ app.get('/api/clients', (req, res) => {
     const params = [];
 
     if (search) {
-      query += ' WHERE c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.address LIKE ? OR c.rut LIKE ?';
-      params.push(search, search, search, search, search);
+      query += " WHERE c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.address LIKE ? OR REPLACE(c.rut, '.', '') LIKE ?";
+      params.push(search, search, search, search, rutSearch || search);
     }
     query += ' ORDER BY c.name ASC LIMIT 100';
 
@@ -184,6 +195,7 @@ app.post('/api/clients', (req, res) => {
     const { name, phone, email, address, rut, notes } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'El nombre es obligatorio' });
 
+    const cleanRut = normalizeRut(rut);
     const stmt = db.prepare(`
       INSERT INTO clients (name, phone, email, address, rut, notes)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -193,7 +205,7 @@ app.post('/api/clients', (req, res) => {
       (phone || '').trim(),
       (email || '').trim(),
       (address || '').trim(),
-      (rut || '').trim(),
+      cleanRut,
       (notes || '').trim()
     );
     
@@ -214,6 +226,7 @@ app.put('/api/clients/:id', (req, res) => {
     const existing = db.prepare('SELECT id FROM clients WHERE id = ?').get(clientId);
     if (!existing) return res.status(404).json({ error: 'Cliente no encontrado' });
 
+    const cleanRut = normalizeRut(rut);
     db.prepare(`
       UPDATE clients
       SET name = ?, phone = ?, email = ?, address = ?, rut = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
@@ -223,7 +236,7 @@ app.put('/api/clients/:id', (req, res) => {
       (phone || '').trim(),
       (email || '').trim(),
       (address || '').trim(),
-      (rut || '').trim(),
+      cleanRut,
       (notes || '').trim(),
       clientId
     );
@@ -231,9 +244,9 @@ app.put('/api/clients/:id', (req, res) => {
     // Keep denormalized orders updated
     db.prepare(`
       UPDATE orders
-      SET client_name = ?, client_phone = ?, client_address = ?
+      SET client_name = ?, client_phone = ?, client_address = ?, client_rut = ?
       WHERE client_id = ?
-    `).run(name.trim(), (phone || '').trim(), (address || '').trim(), clientId);
+    `).run(name.trim(), (phone || '').trim(), (address || '').trim(), cleanRut, clientId);
 
     const updated = db.prepare(`
       SELECT c.*, 
@@ -288,19 +301,29 @@ app.get('/api/clients/:id', (req, res) => {
 // ----------------- ORDERS ENDPOINTS -----------------
 app.get('/api/orders', (req, res) => {
   try {
-    const { status, search, from, to } = req.query;
+    const { status, search, from, to, paymentMethod } = req.query;
     let sql = 'SELECT * FROM orders WHERE 1=1';
     const params = [];
 
-    if (status && status !== 'TODOS') {
+    if (status === 'PROXIMAS') {
+      const twoDaysAhead = getLocalDateStr(new Date(Date.now() + 2 * 86400000));
+      sql += " AND status NOT IN ('ENTREGADO', 'CANCELADO') AND delivery_date <= ?";
+      params.push(twoDaysAhead);
+    } else if (status && status !== 'TODOS') {
       sql += ' AND status = ?';
       params.push(status);
     }
 
+    if (paymentMethod && paymentMethod !== 'TODOS') {
+      sql += ' AND payment_method = ?';
+      params.push(paymentMethod);
+    }
+
     if (search) {
-      sql += ' AND (folio LIKE ? OR client_name LIKE ? OR client_phone LIKE ?)';
-      const term = `%${search}%`;
-      params.push(term, term, term);
+      const term = `%${search.trim()}%`;
+      const rutTerm = `%${normalizeRut(search)}%`;
+      sql += " AND (folio LIKE ? OR client_name LIKE ? OR client_phone LIKE ? OR REPLACE(COALESCE(client_rut, ''), '.', '') LIKE ?)";
+      params.push(term, term, term, rutTerm || term);
     }
 
     if (from) {
@@ -313,7 +336,7 @@ app.get('/api/orders', (req, res) => {
       params.push(to);
     }
 
-    sql += ' ORDER BY id DESC LIMIT 100';
+    sql += (status === 'PROXIMAS') ? ' ORDER BY delivery_date ASC, id ASC LIMIT 100' : ' ORDER BY id DESC LIMIT 100';
 
     const orders = db.prepare(sql).all(...params);
 
@@ -370,10 +393,12 @@ app.post('/api/orders', (req, res) => {
   try {
     const {
       client_name,
+      client_rut,
       client_phone,
       client_address,
       reception_date,
       delivery_date,
+      exit_date,
       document_type,
       payment_status,
       payment_method,
@@ -392,10 +417,15 @@ app.post('/api/orders', (req, res) => {
       return res.status(400).json({ error: 'Debe agregar al menos un servicio o prenda al pedido' });
     }
 
+    const cleanRut = normalizeRut(client_rut);
+
     // 1. Find or create client
     let clientId = null;
     let client = null;
-    if (client_phone && client_phone.trim()) {
+    if (cleanRut) {
+      client = db.prepare("SELECT id FROM clients WHERE REPLACE(COALESCE(rut, ''), '.', '') = ?").get(cleanRut);
+    }
+    if (!client && client_phone && client_phone.trim()) {
       client = db.prepare('SELECT id FROM clients WHERE phone = ?').get(client_phone.trim());
     }
     if (!client && client_name) {
@@ -404,20 +434,21 @@ app.post('/api/orders', (req, res) => {
 
     if (client) {
       clientId = client.id;
-      // Update address or phone if provided
+      // Update address, phone or rut if provided
       db.prepare(`
         UPDATE clients
         SET address = COALESCE(NULLIF(?, ''), address),
             phone = COALESCE(NULLIF(?, ''), phone),
+            rut = COALESCE(NULLIF(?, ''), rut),
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).run(client_address, client_phone, clientId);
+      `).run((client_address || '').trim(), (client_phone || '').trim(), cleanRut, clientId);
     } else {
       const insClient = db.prepare(`
-        INSERT INTO clients (name, phone, address)
-        VALUES (?, ?, ?)
+        INSERT INTO clients (name, phone, address, rut)
+        VALUES (?, ?, ?, ?)
       `);
-      const clientRes = insClient.run(client_name.trim(), client_phone || '', client_address || '');
+      const clientRes = insClient.run(client_name.trim(), (client_phone || '').trim(), (client_address || '').trim(), cleanRut);
       clientId = clientRes.lastInsertRowid;
     }
 
@@ -438,31 +469,37 @@ app.post('/api/orders', (req, res) => {
 
     // Special services JSON
     const specialJson = JSON.stringify(Array.isArray(special_services) ? special_services : []);
+    const resolvedPaymentStatus = payment_status || 'PENDIENTE';
+    const resolvedPaidAmount = resolvedPaymentStatus === 'PAGADO'
+      ? (Number(paid_amount) > 0 ? Number(paid_amount) : total)
+      : (Number(paid_amount) || 0);
 
     // 4. Insert Order
     const insertOrderStmt = db.prepare(`
       INSERT INTO orders (
-        folio, client_id, client_name, client_phone, client_address,
-        reception_date, delivery_date, document_type, status,
+        folio, client_id, client_name, client_rut, client_phone, client_address,
+        reception_date, delivery_date, exit_date, document_type, status,
         payment_status, payment_method, paid_amount,
         special_services, observations, total
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const orderResult = insertOrderStmt.run(
       folio,
       clientId,
       client_name.trim(),
-      client_phone || '',
-      client_address || '',
+      cleanRut,
+      (client_phone || '').trim(),
+      (client_address || '').trim(),
       reception_date || getLocalDateStr(),
       delivery_date || '',
+      exit_date || null,
       document_type || 'BOLETA',
       'RECIBIDO',
-      payment_status || 'PENDIENTE',
+      resolvedPaymentStatus,
       payment_method || 'EFECTIVO',
-      paid_amount || 0,
+      resolvedPaidAmount,
       specialJson,
       observations || '',
       total
@@ -500,19 +537,29 @@ app.post('/api/orders', (req, res) => {
 
 app.patch('/api/orders/:id/status', (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, exit_date } = req.body;
     const allowed = ['RECIBIDO', 'EN_LAVADO', 'LISTO', 'ENTREGADO', 'CANCELADO'];
     if (!allowed.includes(status)) {
       return res.status(400).json({ error: 'Estado no válido' });
     }
 
+    const existing = db.prepare('SELECT id, exit_date FROM orders WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Orden no encontrada' });
+
+    let nextExitDate = null;
+    if (status === 'ENTREGADO') {
+      nextExitDate = (exit_date && exit_date.trim())
+        ? exit_date.trim()
+        : (existing.exit_date || getLocalDateStr());
+    }
+
     db.prepare(`
       UPDATE orders
-      SET status = ?, updated_at = CURRENT_TIMESTAMP
+      SET status = ?, exit_date = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(status, req.params.id);
+    `).run(status, nextExitDate, req.params.id);
 
-    res.json({ success: true, status });
+    res.json({ success: true, status, exit_date: nextExitDate });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -521,6 +568,15 @@ app.patch('/api/orders/:id/status', (req, res) => {
 app.patch('/api/orders/:id/payment', (req, res) => {
   try {
     const { payment_status, payment_method, paid_amount } = req.body;
+    const existing = db.prepare('SELECT id, total, paid_amount FROM orders WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Orden no encontrada' });
+
+    let resolvedPaidAmount = paid_amount;
+    if (resolvedPaidAmount === undefined || resolvedPaidAmount === null) {
+      if (payment_status === 'PAGADO') resolvedPaidAmount = existing.total;
+      else if (payment_status === 'PENDIENTE') resolvedPaidAmount = 0;
+    }
+
     db.prepare(`
       UPDATE orders
       SET payment_status = COALESCE(?, payment_status),
@@ -528,9 +584,51 @@ app.patch('/api/orders/:id/payment', (req, res) => {
           paid_amount = COALESCE(?, paid_amount),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(payment_status, payment_method, paid_amount, req.params.id);
+    `).run(payment_status || null, payment_method || null, resolvedPaidAmount ?? null, req.params.id);
 
-    res.json({ success: true });
+    const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+    res.json({ success: true, order: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/orders/:id', (req, res) => {
+  try {
+    const { status, exit_date, payment_status, payment_method, delivery_date } = req.body;
+    const existing = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Orden no encontrada' });
+
+    const nextStatus = status || existing.status;
+    let nextExitDate = existing.exit_date;
+
+    if (exit_date !== undefined) {
+      nextExitDate = (exit_date && exit_date.trim()) ? exit_date.trim() : null;
+    } else if (nextStatus === 'ENTREGADO' && !nextExitDate) {
+      nextExitDate = getLocalDateStr();
+    } else if (status && status !== 'ENTREGADO') {
+      nextExitDate = null;
+    }
+
+    const nextPaymentStatus = payment_status || existing.payment_status;
+    const nextPaymentMethod = payment_method || existing.payment_method;
+    const nextPaidAmount = nextPaymentStatus === 'PAGADO' ? existing.total : 0;
+    const nextDeliveryDate = (delivery_date && delivery_date.trim()) ? delivery_date.trim() : existing.delivery_date;
+
+    db.prepare(`
+      UPDATE orders
+      SET status = ?,
+          exit_date = ?,
+          delivery_date = ?,
+          payment_status = ?,
+          payment_method = ?,
+          paid_amount = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(nextStatus, nextExitDate, nextDeliveryDate, nextPaymentStatus, nextPaymentMethod, nextPaidAmount, req.params.id);
+
+    const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+    res.json({ success: true, order: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -696,11 +794,30 @@ app.delete('/api/expenses/:id', (req, res) => {
 app.get('/api/stats', (req, res) => {
   try {
     const today = getLocalDateStr();
+    const tomorrow = getLocalDateStr(new Date(Date.now() + 1 * 86400000));
+    const twoDaysAhead = getLocalDateStr(new Date(Date.now() + 2 * 86400000));
 
-    const todayOrders = db.prepare('SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as total FROM orders WHERE reception_date = ?').get(today);
+    const todayOrders = db.prepare("SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as total FROM orders WHERE reception_date = ? AND status != 'CANCELADO'").get(today);
     const pendingOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status IN ('RECIBIDO', 'EN_LAVADO')").get();
     const readyOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'LISTO'").get();
     const totalClients = db.prepare('SELECT COUNT(*) as count FROM clients').get();
+
+    const rawUpcoming = db.prepare(`
+      SELECT id, folio, client_name, client_phone, client_rut, reception_date, delivery_date, status, payment_status, payment_method, total
+      FROM orders
+      WHERE status NOT IN ('ENTREGADO', 'CANCELADO')
+        AND delivery_date != ''
+        AND delivery_date <= ?
+      ORDER BY delivery_date ASC, id ASC
+    `).all(twoDaysAhead);
+
+    const upcomingDeliveries = rawUpcoming.map(o => {
+      let urgency = 'UPCOMING';
+      if (o.delivery_date < today) urgency = 'OVERDUE';
+      else if (o.delivery_date === today) urgency = 'TODAY';
+      else if (o.delivery_date === tomorrow) urgency = 'TOMORROW';
+      return { ...o, urgency };
+    });
 
     const monthlyStats = db.prepare(`
       SELECT substr(reception_date, 1, 7) as month, COUNT(*) as orders, COALESCE(SUM(total), 0) as total
@@ -716,6 +833,16 @@ app.get('/api/stats', (req, res) => {
       pendingCount: pendingOrders.count,
       readyCount: readyOrders.count,
       totalClients: totalClients.count,
+      today,
+      tomorrow,
+      upcomingDeliveries,
+      upcomingSummary: {
+        total: upcomingDeliveries.length,
+        overdueCount: upcomingDeliveries.filter(o => o.urgency === 'OVERDUE').length,
+        todayCount: upcomingDeliveries.filter(o => o.urgency === 'TODAY').length,
+        tomorrowCount: upcomingDeliveries.filter(o => o.urgency === 'TOMORROW').length,
+        upcomingCount: upcomingDeliveries.filter(o => o.urgency === 'UPCOMING').length
+      },
       monthlyStats
     });
   } catch (err) {
@@ -726,7 +853,7 @@ app.get('/api/stats', (req, res) => {
 // ----------------- SALES & BUSINESS REPORTS -----------------
 app.get('/api/reports/sales', (req, res) => {
   try {
-    const { startDate, endDate, paymentStatus, documentType } = req.query;
+    const { startDate, endDate, paymentStatus, documentType, paymentMethod } = req.query;
 
     function buildFilter(prefix) {
       const p = prefix ? `${prefix}.` : '';
@@ -748,6 +875,10 @@ app.get('/api/reports/sales', (req, res) => {
       if (documentType && documentType !== 'TODOS') {
         clauses.push(`${p}document_type = ?`);
         params.push(documentType);
+      }
+      if (paymentMethod && paymentMethod !== 'TODOS') {
+        clauses.push(`${p}payment_method = ?`);
+        params.push(paymentMethod);
       }
 
       return {
@@ -891,7 +1022,7 @@ app.get('/api/reports/sales', (req, res) => {
       GROUP BY documentType
     `).all(...mainFilter.params);
 
-    // 8. Payment status breakdown
+    // 8. Payment status & method breakdown
     const paymentBreakdown = db.prepare(`
       SELECT 
         COALESCE(payment_status, 'PENDIENTE') as paymentStatus,
@@ -900,6 +1031,17 @@ app.get('/api/reports/sales', (req, res) => {
       FROM orders
       ${mainFilter.where}
       GROUP BY paymentStatus
+    `).all(...mainFilter.params);
+
+    const paymentMethodsBreakdown = db.prepare(`
+      SELECT 
+        COALESCE(payment_method, 'EFECTIVO') as paymentMethod,
+        COUNT(*) as count,
+        COALESCE(SUM(total), 0) as revenue
+      FROM orders
+      ${mainFilter.where}
+      GROUP BY paymentMethod
+      ORDER BY revenue DESC
     `).all(...mainFilter.params);
 
     // 9. Top Clients
@@ -928,7 +1070,7 @@ app.get('/api/reports/sales', (req, res) => {
       ORDER BY totalDebt DESC
     `).all();
 
-    // 11. Workshop Status
+    // 11. Workshop Status & Upcoming Deliveries
     const workshopCounts = db.prepare(`
       SELECT status, COUNT(*) as count, COALESCE(SUM(total), 0) as total
       FROM orders
@@ -936,13 +1078,21 @@ app.get('/api/reports/sales', (req, res) => {
       GROUP BY status
     `).all();
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getLocalDateStr();
+    const twoDaysAheadStr = getLocalDateStr(new Date(Date.now() + 2 * 86400000));
     const overdueOrders = db.prepare(`
       SELECT id, folio, client_name, client_phone, delivery_date, status, total
       FROM orders
-      WHERE status NOT IN ('ENTREGADO', 'CANCELADO') AND delivery_date < ?
+      WHERE status NOT IN ('ENTREGADO', 'CANCELADO') AND delivery_date != '' AND delivery_date < ?
       ORDER BY delivery_date ASC
     `).all(todayStr);
+
+    const upcomingDeliveries = db.prepare(`
+      SELECT id, folio, client_name, client_phone, delivery_date, status, payment_status, total
+      FROM orders
+      WHERE status NOT IN ('ENTREGADO', 'CANCELADO') AND delivery_date != '' AND delivery_date >= ? AND delivery_date <= ?
+      ORDER BY delivery_date ASC
+    `).all(todayStr, twoDaysAheadStr);
 
     const readyForPickupOrders = db.prepare(`
       SELECT id, folio, client_name, client_phone, delivery_date, status, total
@@ -954,8 +1104,8 @@ app.get('/api/reports/sales', (req, res) => {
     // 12. Detailed Orders List
     const orders = db.prepare(`
       SELECT 
-        id, folio, client_name, client_phone, reception_date, delivery_date,
-        document_type, status, payment_status, total, created_at
+        id, folio, client_name, client_rut, client_phone, reception_date, delivery_date, exit_date,
+        document_type, status, payment_status, payment_method, total, created_at
       FROM orders
       ${mainFilter.where}
       ORDER BY reception_date DESC, id DESC
@@ -975,12 +1125,14 @@ app.get('/api/reports/sales', (req, res) => {
       categoriesBreakdown,
       documentTypes,
       paymentBreakdown,
+      paymentMethodsBreakdown,
       expensesBreakdown: expensesByType,
       topClients,
       debtors,
       workshop: {
         counts: workshopCounts,
         overdue: overdueOrders,
+        upcoming: upcomingDeliveries,
         readyForPickup: readyForPickupOrders
       },
       orders

@@ -96,6 +96,11 @@
       </div>
     </section>
 
+    <!-- Upcoming / Overdue Deliveries Alert Banner -->
+    <section id="upcomingDeliveriesBanner" class="upcoming-alerts-banner" style="display: none;">
+      <!-- Populated dynamically via JS from /api/stats -->
+    </section>
+
     <!-- ==================== TAB 1: NUEVA GUÍA DE RECEPCIÓN ==================== -->
     <section id="nueva-guia" class="tab-pane active">
       <div class="order-form-container">
@@ -126,11 +131,16 @@
                 </div>
 
                 <div class="form-group">
+                  <label for="clientRut">RUT (sin puntos)</label>
+                  <input type="text" id="clientRut" class="form-control" placeholder="Ej: 12345678-9" autocomplete="off" style="font-family: monospace; font-weight: 700;">
+                </div>
+
+                <div class="form-group">
                   <label for="clientPhone">Teléfono / Fono (WhatsApp)</label>
                   <input type="tel" id="clientPhone" class="form-control" placeholder="+569 12345678">
                 </div>
 
-                <div class="form-group span-2">
+                <div class="form-group">
                   <label for="clientAddress">Dirección</label>
                   <input type="text" id="clientAddress" class="form-control" placeholder="Ej: Calle Villa Alegre 123, Nacimiento">
                 </div>
@@ -173,6 +183,28 @@
                     <label class="compact-segment-option option-paid">
                       <input type="radio" name="paymentStatus" value="PAGADO">
                       <span>💳 Pagado</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group span-2">
+                  <label>Medio de Pago</label>
+                  <div class="compact-segmented-control">
+                    <label class="compact-segment-option">
+                      <input type="radio" name="paymentMethod" value="EFECTIVO" checked>
+                      <span>💵 Efectivo</span>
+                    </label>
+                    <label class="compact-segment-option">
+                      <input type="radio" name="paymentMethod" value="DEBITO">
+                      <span>💳 Débito</span>
+                    </label>
+                    <label class="compact-segment-option">
+                      <input type="radio" name="paymentMethod" value="CREDITO">
+                      <span>💳 Crédito</span>
+                    </label>
+                    <label class="compact-segment-option">
+                      <input type="radio" name="paymentMethod" value="TRANSFERENCIA">
+                      <span>🏦 Transferencia</span>
                     </label>
                   </div>
                 </div>
@@ -301,14 +333,22 @@
             <span>🧺 Control de Pedidos & Estados</span>
           </h3>
           <div class="card-toolbar">
-            <input type="text" id="orderSearchInput" class="form-control" placeholder="🔍 Buscar folio, cliente, fono..." oninput="loadOrders()">
+            <input type="text" id="orderSearchInput" class="form-control" placeholder="🔍 Buscar folio, cliente, RUT, fono..." oninput="loadOrders()">
             <select id="orderStatusFilter" class="form-control" onchange="loadOrders()">
               <option value="TODOS">Todos los Estados</option>
+              <option value="PROXIMAS">⏰ Entregas Próximas / Atrasadas</option>
               <option value="RECIBIDO">📥 Recibido</option>
               <option value="EN_LAVADO">🧼 En Lavado</option>
               <option value="LISTO">✅ Listo p/Retiro</option>
               <option value="ENTREGADO">📦 Entregado</option>
               <option value="CANCELADO">❌ Cancelado</option>
+            </select>
+            <select id="orderPaymentMethodFilter" class="form-control" onchange="loadOrders()">
+              <option value="TODOS">Todos Medios Pago</option>
+              <option value="EFECTIVO">💵 Efectivo</option>
+              <option value="DEBITO">💳 Débito</option>
+              <option value="CREDITO">💳 Crédito</option>
+              <option value="TRANSFERENCIA">🏦 Transferencia</option>
             </select>
           </div>
         </div>
@@ -320,9 +360,9 @@
                 <tr>
                   <th>Folio</th>
                   <th>Cliente</th>
-                  <th>Fechas</th>
+                  <th>Fechas (Recep. / Entrega / Salida)</th>
                   <th>Estado</th>
-                  <th>Pago</th>
+                  <th>Pago / Medio</th>
                   <th>Prendas</th>
                   <th>Total</th>
                   <th style="text-align: center;">Acciones</th>
@@ -597,17 +637,27 @@
               <input type="date" id="reportEndDate" class="form-control" onchange="onCustomDateChange()">
             </div>
             <div class="filter-item">
-              <label for="reportPaymentStatus">💳 Estado de Pago</label>
+              <label for="reportPaymentStatus">💳 Estado Pago</label>
               <select id="reportPaymentStatus" class="form-control" onchange="loadSalesReport()">
-                <option value="TODOS">Todos los Pagos</option>
+                <option value="TODOS">Todos Pagos</option>
                 <option value="PAGADO">✅ Pagados</option>
                 <option value="PENDIENTE">⏳ Pendientes</option>
               </select>
             </div>
             <div class="filter-item">
+              <label for="reportPaymentMethod">💵 Medio Pago</label>
+              <select id="reportPaymentMethod" class="form-control" onchange="syncDetailPaymentMethodFilter(this.value)">
+                <option value="TODOS">Todos Medios</option>
+                <option value="EFECTIVO">💵 Efectivo</option>
+                <option value="DEBITO">💳 Débito</option>
+                <option value="CREDITO">💳 Crédito</option>
+                <option value="TRANSFERENCIA">🏦 Transferencia</option>
+              </select>
+            </div>
+            <div class="filter-item">
               <label for="reportDocType">📄 Tipo Doc</label>
               <select id="reportDocType" class="form-control" onchange="loadSalesReport()">
-                <option value="TODOS">Todos los Documentos</option>
+                <option value="TODOS">Todos Docs</option>
                 <option value="BOLETA">Boleta</option>
                 <option value="FACTURA">Factura</option>
                 <option value="NINGUNO">Ninguno</option>
@@ -717,8 +767,19 @@
               </div>
             </div>
 
-            <!-- 2-Column Breakdowns (Tax Documents vs Expense Categories) -->
-            <div class="reports-grid-2col">
+            <!-- 3-Column Breakdowns (Payment Methods, Tax Documents, Expense Categories) -->
+            <div class="reports-grid-3col">
+              <!-- Payment Methods (Efectivo / Débito / Crédito / Transferencia) -->
+              <div class="chart-box">
+                <div class="chart-header">
+                  <h4>💳 Ventas por Medio de Pago</h4>
+                  <span class="chart-badge">Caja y Tarjetas</span>
+                </div>
+                <div class="breakdown-list" id="paymentMethodsBreakdownContainer">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+
               <!-- Tax Documents (Boleta / Factura / Ninguno) -->
               <div class="chart-box">
                 <div class="chart-header">
@@ -895,6 +956,31 @@
               </button>
             </div>
 
+            <!-- Upcoming Deliveries (Hoy y Próximos 2 Días) -->
+            <div class="chart-box" style="margin-bottom: 1.5rem; border-top: 4px solid #f59e0b;">
+              <div class="chart-header" style="background: #fffbeb;">
+                <h4 style="color: #92400e;">⏰ Entregas Más Próximas (Hoy y Próximos 2 Días)</h4>
+                <span class="chart-badge" id="upcomingWorkshopBadge" style="background:#fef3c7; color:#b45309;">0 próximas</span>
+              </div>
+              <div class="orders-table-wrapper" style="padding: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 100px;">Folio</th>
+                      <th>Cliente</th>
+                      <th>Teléfono</th>
+                      <th>Entrega Estimada</th>
+                      <th>Estado Taller</th>
+                      <th style="text-align: right;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="upcomingWorkshopTableBody">
+                    <!-- Injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             <!-- Ready for Pickup List -->
             <div class="chart-box">
               <div class="chart-header">
@@ -924,23 +1010,35 @@
           <!-- ================= SUB-VIEW 5: DETALLE DE PEDIDOS ================= -->
           <div id="reportSubView-detalle" class="report-view-pane">
             <div class="reports-detail-section" style="margin-top: 0;">
-              <div class="detail-header">
-                <h4>📋 Detalle Completo de Pedidos (<span id="detailOrdersCount">0</span>)</h4>
-                <input type="text" id="reportTableSearch" class="form-control detail-search" placeholder="🔍 Filtrar por folio o cliente..." oninput="filterReportTable()">
+              <div class="detail-header" style="gap: 0.75rem;">
+                <div>
+                  <h4>📋 Detalle Completo de Ventas (<span id="detailOrdersCount">0</span>)</h4>
+                  <small style="color: #64748b; font-weight: 600;">Filtra al instante por medio de pago, folio, cliente o RUT</small>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                  <div class="detail-method-pills" id="detailPaymentMethodPills">
+                    <button type="button" class="method-pill active" data-method="TODOS" onclick="setDetailPaymentMethod('TODOS')">Todos</button>
+                    <button type="button" class="method-pill" data-method="EFECTIVO" onclick="setDetailPaymentMethod('EFECTIVO')">💵 Efectivo</button>
+                    <button type="button" class="method-pill" data-method="DEBITO" onclick="setDetailPaymentMethod('DEBITO')">💳 Débito</button>
+                    <button type="button" class="method-pill" data-method="CREDITO" onclick="setDetailPaymentMethod('CREDITO')">💳 Crédito</button>
+                    <button type="button" class="method-pill" data-method="TRANSFERENCIA" onclick="setDetailPaymentMethod('TRANSFERENCIA')">🏦 Transf.</button>
+                  </div>
+                  <input type="text" id="reportTableSearch" class="form-control detail-search" placeholder="🔍 Folio, cliente o RUT..." oninput="filterReportTable()">
+                </div>
               </div>
 
               <div class="orders-table-wrapper">
                 <table class="data-table" id="reportDetailTable">
                   <thead>
                     <tr>
-                      <th style="width: 100px;">Folio</th>
-                      <th style="width: 120px;">Fecha</th>
-                      <th style="min-width: 160px;">Cliente</th>
-                      <th style="min-width: 180px;">Prendas Lavadas</th>
-                      <th style="width: 110px;">Doc</th>
+                      <th style="width: 95px;">Folio</th>
+                      <th style="min-width: 175px;">Fechas (Recep. / Est. / Salida)</th>
+                      <th style="min-width: 170px;">Cliente / RUT</th>
+                      <th style="min-width: 170px;">Prendas Lavadas</th>
+                      <th style="width: 95px;">Doc</th>
                       <th style="width: 120px;">Estado</th>
-                      <th style="width: 110px;">Pago</th>
-                      <th style="text-align: right; width: 130px;">Total</th>
+                      <th style="width: 145px;">Pago / Medio</th>
+                      <th style="text-align: right; width: 120px;">Total</th>
                     </tr>
                   </thead>
                   <tbody id="reportTableBody">
@@ -1086,8 +1184,8 @@
 
           <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
             <div class="form-group">
-              <label for="modalClientRut">RUT (opcional)</label>
-              <input type="text" id="modalClientRut" class="form-control" placeholder="Ej: 12.345.678-9">
+              <label for="modalClientRut">RUT (sin puntos, opcional)</label>
+              <input type="text" id="modalClientRut" class="form-control" placeholder="Ej: 12345678-9" style="font-family: monospace; font-weight: 700;">
             </div>
 
             <div class="form-group">
@@ -1303,6 +1401,92 @@
       <div class="modal-footer" style="background: #f8fafc;">
         <button type="button" class="btn btn-secondary" onclick="closeDeleteExpenseModal()">Cancelar</button>
         <button type="button" class="btn btn-danger" id="btnConfirmDeleteExpenseAction" onclick="executeDeleteExpense()">🗑️ Sí, Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE GESTIÓN DE ENTREGA, SALIDA Y PAGO ==================== -->
+  <div class="modal-overlay" id="manageOrderModal">
+    <div class="modal-container" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 id="manageOrderModalTitle">⚙️ Entrega, Salida y Pago</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeManageOrderModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="manageOrderForm" autocomplete="off" onsubmit="event.preventDefault(); saveManageOrderSubmit();">
+          <input type="hidden" id="manageOrderId" value="">
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.15rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Cliente / Orden</span>
+              <div style="font-weight: 800; color: #071933; font-size: 1rem;" id="manageOrderClientLabel">-</div>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Total</span>
+              <div style="font-weight: 900; color: #0077e6; font-size: 1.15rem;" id="manageOrderTotalLabel">$0</div>
+            </div>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label for="manageOrderStatus">Estado en Taller</label>
+              <select id="manageOrderStatus" class="form-control" style="font-weight: 700;" onchange="onManageOrderStatusChange(this.value)">
+                <option value="RECIBIDO">📥 Recibido</option>
+                <option value="EN_LAVADO">🧼 En Lavado</option>
+                <option value="LISTO">✅ Listo p/Retiro</option>
+                <option value="ENTREGADO">📦 Entregado (Sale del local)</option>
+                <option value="CANCELADO">❌ Cancelado</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="manageOrderDeliveryDate">📅 Fecha Entrega Estimada</label>
+              <input type="date" id="manageOrderDeliveryDate" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.85rem; border-radius: 8px;">
+            <label for="manageOrderExitDate" style="color: #166534;">🚪 Día que Sale del Local (Salida Real)</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem;">
+              <input type="date" id="manageOrderExitDate" class="form-control">
+              <button type="button" class="btn btn-sm btn-success" onclick="setManageOrderExitToday()" style="white-space: nowrap; height: 38px;">
+                📅 Hoy
+              </button>
+              <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('manageOrderExitDate').value = ''" style="white-space: nowrap; height: 38px;" title="Aún en el local">
+                Limpiar
+              </button>
+            </div>
+            <small style="color: #15803d; display: block; margin-top: 0.35rem;">
+              Se registra automáticamente al marcar como <strong>Entregado</strong> o puedes fijar el día exacto aquí.
+            </small>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="manageOrderPaymentStatus">Estado de Pago</label>
+              <select id="manageOrderPaymentStatus" class="form-control" style="font-weight: 700;">
+                <option value="PENDIENTE">⏳ Pendiente</option>
+                <option value="PAGADO">✅ Pagado</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="manageOrderPaymentMethod">Medio de Pago</label>
+              <select id="manageOrderPaymentMethod" class="form-control" style="font-weight: 700;">
+                <option value="EFECTIVO">💵 Efectivo</option>
+                <option value="DEBITO">💳 Débito</option>
+                <option value="CREDITO">💳 Crédito</option>
+                <option value="TRANSFERENCIA">🏦 Transferencia</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeManageOrderModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="saveManageOrderSubmit()">💾 Guardar Cambios</button>
       </div>
     </div>
   </div>

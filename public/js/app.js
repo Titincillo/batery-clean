@@ -24,6 +24,80 @@ function formatDate(isoStr) {
   return isoStr;
 }
 
+// Local ISO Date helper YYYY-MM-DD (avoids UTC timezone shift)
+function getLocalTodayISO(offsetDays = 0) {
+  const d = new Date();
+  if (offsetDays) d.setDate(d.getDate() + offsetDays);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Sanitize Chilean RUT WITHOUT dots (e.g. 12345678-9)
+function sanitizeRut(val) {
+  return String(val || '')
+    .replace(/\./g, '')
+    .replace(/[^0-9kK-]/g, '')
+    .toUpperCase();
+}
+
+// Wire RUT inputs so dots are stripped immediately upon typing or pasting
+function setupRutInputs() {
+  const rutIds = ['clientRut', 'modalClientRut'];
+  rutIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', (e) => {
+      const cleaned = sanitizeRut(e.target.value);
+      if (e.target.value !== cleaned) {
+        e.target.value = cleaned;
+      }
+    });
+    el.addEventListener('blur', (e) => {
+      let cleaned = sanitizeRut(e.target.value);
+      // If user typed 7-9 digits/K without a hyphen, add hyphen before check digit (still zero dots!)
+      if (cleaned && !cleaned.includes('-') && cleaned.length >= 7) {
+        cleaned = cleaned.slice(0, -1) + '-' + cleaned.slice(-1);
+      }
+      e.target.value = cleaned;
+    });
+  });
+}
+
+function formatPaymentMethod(method) {
+  const map = {
+    EFECTIVO: '💵 Efectivo',
+    DEBITO: '💳 Débito',
+    CREDITO: '💳 Crédito',
+    TRANSFERENCIA: '🏦 Transf.'
+  };
+  return map[method] || (method || '💵 Efectivo');
+}
+
+function getDeliveryUrgencyBadgeHtml(order) {
+  if (!order || !order.delivery_date) return '';
+  if (order.status === 'ENTREGADO' || order.status === 'CANCELADO') return '';
+
+  const today = getLocalTodayISO(0);
+  const tomorrow = getLocalTodayISO(1);
+  const twoDays = getLocalTodayISO(2);
+
+  if (order.delivery_date < today) {
+    return `<span class="delivery-urgency-badge urgency-overdue">⚠️ Atrasado</span>`;
+  }
+  if (order.delivery_date === today) {
+    return `<span class="delivery-urgency-badge urgency-today">🔥 Entrega HOY</span>`;
+  }
+  if (order.delivery_date === tomorrow) {
+    return `<span class="delivery-urgency-badge urgency-tomorrow">⏰ Mañana</span>`;
+  }
+  if (order.delivery_date <= twoDays) {
+    return `<span class="delivery-urgency-badge urgency-tomorrow">📅 En 2 días</span>`;
+  }
+  return '';
+}
+
 // Toast notification
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
@@ -42,6 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 1. Setup UI & Event Listeners first so buttons always work immediately
   setupNavigation();
   setupDates();
+  setupRutInputs();
   setupClientAutocomplete();
   setupSpecialServicesHandlers();
   setupOrderForm();
@@ -74,6 +149,12 @@ window.toggleClientsGridVisibility = toggleClientsGridVisibility;
 window.loadClients = loadClients;
 window.loadOrders = loadOrders;
 window.openClientModal = openClientModal;
+window.openManageOrderModalById = openManageOrderModalById;
+window.closeManageOrderModal = closeManageOrderModal;
+window.onManageOrderStatusChange = onManageOrderStatusChange;
+window.setManageOrderExitToday = setManageOrderExitToday;
+window.saveManageOrderSubmit = saveManageOrderSubmit;
+window.goToUpcomingOrders = goToUpcomingOrders;
 window.filterPricesCatalog = filterPricesCatalog;
 window.openServiceModal = openServiceModal;
 window.openServiceModalById = openServiceModalById;
@@ -100,6 +181,8 @@ window.exportSalesReportCSV = exportSalesReportCSV;
 window.printSalesReport = printSalesReport;
 window.filterReportTable = filterReportTable;
 window.switchReportSubView = switchReportSubView;
+window.setDetailPaymentMethod = setDetailPaymentMethod;
+window.syncDetailPaymentMethodFilter = syncDetailPaymentMethodFilter;
 window.openWhatsAppDebt = openWhatsAppDebt;
 window.openWhatsAppReady = openWhatsAppReady;
 window.filterTableByOverdue = filterTableByOverdue;
@@ -368,6 +451,7 @@ function setupSpecialServicesHandlers() {
 // Setup Client Autocomplete
 function setupClientAutocomplete() {
   const nameInput = document.getElementById('clientName');
+  const rutInput = document.getElementById('clientRut');
   const phoneInput = document.getElementById('clientPhone');
   const addressInput = document.getElementById('clientAddress');
   const suggestionsBox = document.getElementById('clientSuggestions');
@@ -397,10 +481,13 @@ function setupClientAutocomplete() {
             item.style.cursor = 'pointer';
             item.style.borderBottom = '1px solid #f1f5f9';
             item.style.fontSize = '0.85rem';
-            item.innerHTML = `<strong>${c.name}</strong> - 📞 ${c.phone || 'S/N'} <br><small style="color:#64748b;">${c.address || ''}</small>`;
+            const cleanRut = sanitizeRut(c.rut || '');
+            const rutDisplay = cleanRut ? ` | RUT: <strong>${cleanRut}</strong>` : '';
+            item.innerHTML = `<strong>${c.name}</strong>${rutDisplay} - 📞 ${c.phone || 'S/N'} <br><small style="color:#64748b;">${c.address || ''}</small>`;
 
             item.addEventListener('click', () => {
               nameInput.value = c.name;
+              if (rutInput) rutInput.value = cleanRut;
               phoneInput.value = c.phone || '';
               addressInput.value = c.address || '';
               suggestionsBox.style.display = 'none';
@@ -419,10 +506,11 @@ function setupClientAutocomplete() {
   }
 
   if (nameInput) nameInput.addEventListener('input', (e) => doSearch(e.target.value));
+  if (rutInput) rutInput.addEventListener('input', (e) => doSearch(e.target.value));
   if (phoneInput) phoneInput.addEventListener('input', (e) => doSearch(e.target.value));
 
   document.addEventListener('click', (e) => {
-    if (suggestionsBox && !suggestionsBox.contains(e.target) && e.target !== nameInput && e.target !== phoneInput) {
+    if (suggestionsBox && !suggestionsBox.contains(e.target) && e.target !== nameInput && e.target !== rutInput && e.target !== phoneInput) {
       suggestionsBox.style.display = 'none';
     }
   });
@@ -457,10 +545,12 @@ function setupOrderForm() {
 
     const docType = document.querySelector('input[name="docType"]:checked')?.value || 'BOLETA';
     const paymentStatus = document.querySelector('input[name="paymentStatus"]:checked')?.value || 'PENDIENTE';
-    const paymentMethod = document.getElementById('paymentMethod')?.value || 'EFECTIVO';
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || document.getElementById('paymentMethod')?.value || 'EFECTIVO';
+    const clientRut = sanitizeRut(document.getElementById('clientRut')?.value || '');
 
     const payload = {
       client_name: clientName,
+      client_rut: clientRut,
       client_phone: document.getElementById('clientPhone').value.trim(),
       client_address: document.getElementById('clientAddress').value.trim(),
       reception_date: document.getElementById('orderReceptionDate').value,
@@ -530,6 +620,8 @@ function setupOrderForm() {
 // Reset Order Form
 function resetOrderForm() {
   document.getElementById('clientName').value = '';
+  const rutEl = document.getElementById('clientRut');
+  if (rutEl) rutEl.value = '';
   document.getElementById('clientPhone').value = '';
   document.getElementById('clientAddress').value = '';
   document.getElementById('orderObservations').value = '';
@@ -541,6 +633,8 @@ function resetOrderForm() {
   if (pendingRadio) pendingRadio.checked = true;
   const boletaRadio = document.querySelector('input[name="docType"][value="BOLETA"]');
   if (boletaRadio) boletaRadio.checked = true;
+  const efectivoRadio = document.querySelector('input[name="paymentMethod"][value="EFECTIVO"]');
+  if (efectivoRadio) efectivoRadio.checked = true;
   setupDates();
   updateOrderSummary();
 }
@@ -553,10 +647,12 @@ async function loadOrders() {
   container.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem;">Cargando pedidos...</td></tr>';
 
   const statusFilter = document.getElementById('orderStatusFilter')?.value || 'TODOS';
+  const methodFilter = document.getElementById('orderPaymentMethodFilter')?.value || 'TODOS';
   const searchFilter = document.getElementById('orderSearchInput')?.value || '';
 
   try {
     let url = `/api/orders?status=${encodeURIComponent(statusFilter)}`;
+    if (methodFilter && methodFilter !== 'TODOS') url += `&paymentMethod=${encodeURIComponent(methodFilter)}`;
     if (searchFilter) url += `&search=${encodeURIComponent(searchFilter)}`;
 
     const res = await fetch(url);
@@ -577,28 +673,36 @@ async function loadOrders() {
     orders.forEach(order => {
       const tr = document.createElement('tr');
       const totalPrendas = order.items.reduce((acc, it) => acc + it.quantity, 0);
+      const urgencyBadge = getDeliveryUrgencyBadgeHtml(order);
+      const exitBadge = order.exit_date
+        ? `<br><span class="exit-date-badge">🚪 Salida: ${formatDate(order.exit_date)}</span>`
+        : '';
+      const pm = order.payment_method || 'EFECTIVO';
+      const rutLine = order.client_rut ? `<br><small style="color:#475569; font-family:monospace;">RUT: ${sanitizeRut(order.client_rut)}</small>` : '';
 
       tr.innerHTML = `
         <td><strong style="color: #d90429; font-size: 1rem;">${order.folio}</strong></td>
         <td>
-          <strong>${order.client_name}</strong><br>
+          <strong>${order.client_name}</strong>${rutLine}<br>
           <small style="color: #64748b;">📞 ${order.client_phone || 'Sin fono'}</small>
         </td>
         <td>
-          <span>${formatDate(order.reception_date)}</span><br>
-          <small style="color: #0284c7; font-weight:600;">Entrega: ${formatDate(order.delivery_date)}</small>
+          <small style="color:#64748b;">📥 Recep: ${formatDate(order.reception_date)}</small><br>
+          <small style="color: #0284c7; font-weight:700;">📅 Entrega: ${formatDate(order.delivery_date)}</small>${urgencyBadge}${exitBadge}
         </td>
         <td><span class="status-pill status-${order.status}">${formatStatus(order.status)}</span></td>
         <td>
-          <span style="font-weight: 700; color: ${order.payment_status === 'PAGADO' ? '#15803d' : '#b45309'};">
-            ${order.payment_status}
+          <span style="font-weight: 800; color: ${order.payment_status === 'PAGADO' ? '#15803d' : '#b45309'};">
+            ${order.payment_status === 'PAGADO' ? '✅ PAGADO' : '⏳ PENDIENTE'}
           </span><br>
-          <small>${order.document_type || 'BOLETA'}</small>
+          <span class="payment-method-badge pm-${pm}">${formatPaymentMethod(pm)}</span>
+          <small style="display:block; color:#64748b; margin-top:2px;">${order.document_type || 'BOLETA'}</small>
         </td>
         <td><span class="badge" style="background:#e0f2fe; color:#0369a1; padding:0.2rem 0.5rem; border-radius:4px; font-weight:700;">${totalPrendas} prendas</span></td>
         <td><strong style="color: #0f172a; font-size: 1.05rem;">${formatMoney(order.total)}</strong></td>
         <td>
           <div class="table-actions">
+            <button type="button" class="btn btn-sm btn-primary btn-manage-order" title="Registrar fecha de salida, pago o medio de pago">⚙️ Salida / Pago</button>
             <button type="button" class="btn btn-sm btn-outline btn-print-order" title="Imprimir Guía / Comprobante">🖨️ Ver/Imprimir</button>
             <button type="button" class="btn btn-sm btn-whatsapp btn-wa-order" title="Avisar por WhatsApp">📲 WhatsApp</button>
             <select class="status-select">
@@ -618,6 +722,11 @@ async function loadOrders() {
         await updateOrderStatus(order.id, e.target.value);
         loadOrders();
         loadStats();
+      });
+
+      // Manage Order button (Exit date & payment)
+      tr.querySelector('.btn-manage-order').addEventListener('click', () => {
+        openManageOrderModal(order);
       });
 
       // Print button
@@ -658,10 +767,97 @@ async function updateOrderStatus(orderId, newStatus) {
       body: JSON.stringify({ status: newStatus })
     });
     if (res.ok) {
-      showToast(`Estado actualizado a: ${newStatus}`);
+      const data = await res.json();
+      if (newStatus === 'ENTREGADO' && data.exit_date) {
+        showToast(`📦 Entregado. Salida del local registrada: ${formatDate(data.exit_date)}`);
+      } else {
+        showToast(`Estado actualizado a: ${formatStatus(newStatus)}`);
+      }
     }
   } catch (err) {
     alert('Error al actualizar estado: ' + err.message);
+  }
+}
+
+async function openManageOrderModalById(orderId) {
+  try {
+    const res = await fetch(`/api/orders/${orderId}`);
+    if (!res.ok) throw new Error('Orden no encontrada');
+    const order = await res.json();
+    openManageOrderModal(order);
+  } catch (err) {
+    showToast('No se pudo cargar la orden: ' + err.message, 'error');
+  }
+}
+
+function openManageOrderModal(order) {
+  const modal = document.getElementById('manageOrderModal');
+  if (!modal || !order) return;
+
+  document.getElementById('manageOrderId').value = order.id;
+  document.getElementById('manageOrderModalTitle').textContent = `⚙️ Orden Folio Nº ${order.folio}`;
+  document.getElementById('manageOrderClientLabel').textContent = `${order.client_name}${order.client_rut ? ` (${sanitizeRut(order.client_rut)})` : ''}`;
+  document.getElementById('manageOrderTotalLabel').textContent = formatMoney(order.total);
+  document.getElementById('manageOrderStatus').value = order.status || 'RECIBIDO';
+  document.getElementById('manageOrderDeliveryDate').value = order.delivery_date || '';
+  document.getElementById('manageOrderExitDate').value = order.exit_date || '';
+  document.getElementById('manageOrderPaymentStatus').value = order.payment_status || 'PENDIENTE';
+  document.getElementById('manageOrderPaymentMethod').value = order.payment_method || 'EFECTIVO';
+
+  modal.classList.add('open');
+}
+
+function closeManageOrderModal() {
+  document.getElementById('manageOrderModal')?.classList.remove('open');
+}
+
+function onManageOrderStatusChange(newStatus) {
+  const exitInput = document.getElementById('manageOrderExitDate');
+  if (!exitInput) return;
+  if (newStatus === 'ENTREGADO' && !exitInput.value) {
+    exitInput.value = getLocalTodayISO(0);
+  } else if (newStatus !== 'ENTREGADO') {
+    exitInput.value = '';
+  }
+}
+
+function setManageOrderExitToday() {
+  const exitInput = document.getElementById('manageOrderExitDate');
+  const statusSelect = document.getElementById('manageOrderStatus');
+  if (exitInput) exitInput.value = getLocalTodayISO(0);
+  if (statusSelect && statusSelect.value !== 'ENTREGADO') {
+    statusSelect.value = 'ENTREGADO';
+  }
+}
+
+async function saveManageOrderSubmit() {
+  const orderId = document.getElementById('manageOrderId').value;
+  if (!orderId) return;
+
+  const status = document.getElementById('manageOrderStatus').value;
+  const delivery_date = document.getElementById('manageOrderDeliveryDate').value;
+  const exit_date = document.getElementById('manageOrderExitDate').value;
+  const payment_status = document.getElementById('manageOrderPaymentStatus').value;
+  const payment_method = document.getElementById('manageOrderPaymentMethod').value;
+
+  try {
+    const res = await fetch(`/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, delivery_date, exit_date, payment_status, payment_method })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Error al actualizar orden');
+    }
+
+    showToast('✅ Orden actualizada (Salida / Pago guardados)');
+    closeManageOrderModal();
+    if (state.activeTab === 'pedidos-list') loadOrders();
+    if (state.activeTab === 'reportes-ventas') loadSalesReport();
+    loadStats();
+  } catch (err) {
+    alert('Error al guardar cambios: ' + err.message);
   }
 }
 
@@ -837,7 +1033,7 @@ async function loadClients() {
         </td>
         <td class="col-phone">${phoneHtml}</td>
         <td class="col-email ${isColHidden('col-email')}">${emailHtml}</td>
-        <td class="col-rut ${isColHidden('col-rut')}">${c.rut ? `<span style="font-family:monospace; font-weight:700;">${c.rut}</span>` : '<span style="color:#94a3b8;">-</span>'}</td>
+        <td class="col-rut ${isColHidden('col-rut')}">${c.rut ? `<span style="font-family:monospace; font-weight:700;">${sanitizeRut(c.rut)}</span>` : '<span style="color:#94a3b8;">-</span>'}</td>
         <td class="col-orders ${isColHidden('col-orders')}">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; padding:0.25rem 0.6rem; border-radius:12px; font-weight:700; font-size:0.8rem;">
             ${orderCount} ${orderCount === 1 ? 'pedido' : 'pedidos'}
@@ -864,6 +1060,8 @@ async function loadClients() {
       tr.querySelector('.btn-new-order-client').addEventListener('click', () => {
         document.querySelector('.nav-tab[data-target="nueva-guia"]').click();
         document.getElementById('clientName').value = c.name;
+        const rutEl = document.getElementById('clientRut');
+        if (rutEl) rutEl.value = sanitizeRut(c.rut || '');
         document.getElementById('clientPhone').value = c.phone || '';
         document.getElementById('clientAddress').value = c.address || '';
         showToast(`Cliente "${c.name}" cargado en la Guía de Recepción`);
@@ -909,7 +1107,7 @@ function openClientModal(client = null) {
     phoneInput.value = client.phone || '';
     if (emailInput) emailInput.value = client.email || '';
     addressInput.value = client.address || '';
-    rutInput.value = client.rut || '';
+    rutInput.value = sanitizeRut(client.rut || '');
     notesInput.value = client.notes || '';
   } else {
     // Create mode
@@ -938,7 +1136,7 @@ async function saveClientModal() {
   const phone = document.getElementById('modalClientPhone').value.trim();
   const email = document.getElementById('modalClientEmail')?.value.trim() || '';
   const address = document.getElementById('modalClientAddress').value.trim();
-  const rut = document.getElementById('modalClientRut').value.trim();
+  const rut = sanitizeRut(document.getElementById('modalClientRut').value);
   const notes = document.getElementById('modalClientNotes').value.trim();
 
   if (!name) {
@@ -1489,9 +1687,80 @@ async function loadStats() {
       badge.style.display = stats.pendingCount > 0 ? 'inline-block' : 'none';
     }
 
+    // Render Upcoming / Overdue Deliveries Alert Banner
+    renderUpcomingAlertsBanner(stats);
+
   } catch (err) {
     console.error('Error loading stats:', err);
   }
+}
+
+function renderUpcomingAlertsBanner(stats) {
+  const banner = document.getElementById('upcomingDeliveriesBanner');
+  if (!banner) return;
+
+  const list = stats.upcomingDeliveries || [];
+  const summary = stats.upcomingSummary || {};
+
+  if (list.length === 0) {
+    banner.style.display = 'none';
+    banner.innerHTML = '';
+    return;
+  }
+
+  const hasOverdue = (summary.overdueCount || 0) > 0;
+  banner.classList.toggle('has-overdue', hasOverdue);
+  banner.style.display = 'flex';
+
+  const parts = [];
+  if (summary.overdueCount > 0) parts.push(`<strong>${summary.overdueCount} atrasada(s)</strong>`);
+  if (summary.todayCount > 0) parts.push(`<strong>${summary.todayCount} para HOY</strong>`);
+  if (summary.tomorrowCount > 0) parts.push(`<strong>${summary.tomorrowCount} para mañana</strong>`);
+  if (summary.upcomingCount > 0) parts.push(`<strong>${summary.upcomingCount} en 2 días</strong>`);
+
+  const chipsHtml = list.slice(0, 8).map(o => {
+    let chipCls = 'chip-tomorrow';
+    let tag = '📅 Próx.';
+    if (o.urgency === 'OVERDUE') { chipCls = 'chip-overdue'; tag = '⚠️ Atrasado'; }
+    else if (o.urgency === 'TODAY') { chipCls = 'chip-today'; tag = '🔥 HOY'; }
+    else if (o.urgency === 'TOMORROW') { chipCls = 'chip-tomorrow'; tag = '⏰ Mañana'; }
+
+    return `
+      <button type="button" class="upcoming-chip ${chipCls}" onclick="openManageOrderModalById(${o.id})" title="Clic para gestionar salida o pago de Folio ${o.folio}">
+        <span>${tag}</span>
+        <strong>#${o.folio}</strong>
+        <span>${o.client_name}</span>
+        <small style="opacity:0.8;">(${formatDate(o.delivery_date)})</small>
+      </button>
+    `;
+  }).join('');
+
+  const extraCount = list.length > 8 ? `<span style="font-size:0.8rem; font-weight:700; color:#92400e;">+${list.length - 8} más...</span>` : '';
+
+  banner.innerHTML = `
+    <div class="upcoming-alerts-top">
+      <div class="upcoming-alerts-title">
+        <span style="font-size: 1.25rem;">${hasOverdue ? '🚨' : '⏰'}</span>
+        <span>Entregas Más Próximas (${list.length}): ${parts.join(' • ')}</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button type="button" class="btn btn-sm ${hasOverdue ? 'btn-danger' : 'btn-primary'}" onclick="goToUpcomingOrders()">
+          🧺 Ver Todas en Control de Pedidos
+        </button>
+      </div>
+    </div>
+    <div class="upcoming-alerts-chips">
+      ${chipsHtml}
+      ${extraCount}
+    </div>
+  `;
+}
+
+function goToUpcomingOrders() {
+  const pedidosTab = document.querySelector('.nav-tab[data-target="pedidos-list"]');
+  const statusSelect = document.getElementById('orderStatusFilter');
+  if (statusSelect) statusSelect.value = 'PROXIMAS';
+  if (pedidosTab) pedidosTab.click();
 }
 
 // ----------------- PRINT RECEIPT MODAL (FLYER REPLICA) -----------------
@@ -1512,6 +1781,14 @@ function openPrintModal(order) {
       <td style="width: 100px; text-align: right; font-weight: 800;">${formatMoney(item.subtotal)}</td>
     </tr>
   `).join('');
+
+  const cleanRut = sanitizeRut(order.client_rut || '');
+  const exitDateRow = order.exit_date
+    ? `<div class="receipt-client-row" style="grid-column: span 2; background: #f0fdf4; padding: 2px 6px; border-radius: 4px;">
+         <strong>🚪 Fecha Salida del Local:</strong>
+         <span style="font-weight: 800; color: #15803d;">${formatDate(order.exit_date)}</span>
+       </div>`
+    : '';
 
   content.innerHTML = `
     <div class="receipt-paper">
@@ -1546,12 +1823,17 @@ function openPrintModal(order) {
           <span>${formatDate(order.reception_date)}</span>
         </div>
         <div class="receipt-client-row">
-          <strong>Fecha Entrega:</strong>
+          <strong>Fecha Entrega Est.:</strong>
           <span>${formatDate(order.delivery_date)}</span>
         </div>
-        <div class="receipt-client-row" style="grid-column: span 2;">
+        ${exitDateRow}
+        <div class="receipt-client-row">
           <strong>Cliente:</strong>
           <span style="font-weight:700; text-transform:uppercase;">${order.client_name}</span>
+        </div>
+        <div class="receipt-client-row">
+          <strong>RUT:</strong>
+          <span style="font-family:monospace; font-weight:700;">${cleanRut || 'No registrado'}</span>
         </div>
         <div class="receipt-client-row">
           <strong>Dirección:</strong>
@@ -1566,10 +1848,11 @@ function openPrintModal(order) {
           <span style="background:#e0f2fe; padding:1px 6px; border-radius:4px; font-weight:700; font-size:0.75rem;">
             ${order.document_type || 'BOLETA'}
           </span>
-          <span style="margin-left: 1rem; font-weight:700;">Estado Pago:</span>
+          <span style="margin-left: 0.75rem; font-weight:700;">Pago:</span>
           <span style="color:${order.payment_status === 'PAGADO' ? '#15803d' : '#b45309'}; font-weight:bold;">
             ${order.payment_status}
           </span>
+          <span style="margin-left: 0.5rem; font-size:0.75rem; color:#334155;">(${formatPaymentMethod(order.payment_method)})</span>
         </div>
       </div>
 
@@ -1730,25 +2013,48 @@ function openWhatsAppReady(phone, clientName, folio) {
 }
 
 function filterTableByOverdue() {
-  const pedidosTab = document.querySelector('.nav-tab[data-target="pedidos-list"]');
-  if (pedidosTab) pedidosTab.click();
+  goToUpcomingOrders();
+}
+
+function setDetailPaymentMethod(method) {
+  const select = document.getElementById('reportPaymentMethod');
+  if (select) select.value = method;
+  document.querySelectorAll('#detailPaymentMethodPills .method-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.method === method);
+  });
+  loadSalesReport();
+}
+
+function syncDetailPaymentMethodFilter(method) {
+  document.querySelectorAll('#detailPaymentMethodPills .method-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.method === method);
+  });
+  loadSalesReport();
 }
 
 async function loadSalesReport() {
   const startInput = document.getElementById('reportStartDate');
   const endInput = document.getElementById('reportEndDate');
   const paymentSelect = document.getElementById('reportPaymentStatus');
+  const methodSelect = document.getElementById('reportPaymentMethod');
   const docSelect = document.getElementById('reportDocType');
 
   const startDate = startInput ? startInput.value : '';
   const endDate = endInput ? endInput.value : '';
   const paymentStatus = paymentSelect ? paymentSelect.value : 'TODOS';
+  const paymentMethod = methodSelect ? methodSelect.value : 'TODOS';
   const documentType = docSelect ? docSelect.value : 'TODOS';
+
+  // Keep detail pills synced with top dropdown
+  document.querySelectorAll('#detailPaymentMethodPills .method-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.method === paymentMethod);
+  });
 
   const params = new URLSearchParams();
   if (startDate) params.append('startDate', startDate);
   if (endDate) params.append('endDate', endDate);
   if (paymentStatus && paymentStatus !== 'TODOS') params.append('paymentStatus', paymentStatus);
+  if (paymentMethod && paymentMethod !== 'TODOS') params.append('paymentMethod', paymentMethod);
   if (documentType && documentType !== 'TODOS') params.append('documentType', documentType);
 
   try {
@@ -1776,7 +2082,7 @@ async function loadSalesReport() {
     const elPendingPct = document.getElementById('kpiPendingPercent');
 
     if (elTotalRev) elTotalRev.textContent = formatMoney(totalRev);
-    if (elTotalOrders) elTotalOrders.textContent = `${s.totalOrders || 0} pedidos (Ticket: ${formatMoney(s.averageTicket || 0)})`;
+    if (elTotalOrders) elTotalOrders.textContent = `${s.totalOrders || 0} ped. • Prom: ${formatMoney(s.averageTicket || 0)}`;
     if (elTotalExpenses) elTotalExpenses.textContent = formatMoney(totalExp);
     if (elExpensesCount) elExpensesCount.textContent = `${s.expensesCount || 0} compras registradas`;
     if (elNetProfit) elNetProfit.textContent = formatMoney(netProf);
@@ -1805,6 +2111,7 @@ async function loadSalesReport() {
 
     // 3. Render Financial Timeline & Breakdowns
     renderDailySalesChart(data.dailyBreakdown || []);
+    renderPaymentMethodsBreakdown(data.paymentMethodsBreakdown || [], totalRev);
     renderDocTypesBreakdown(data.documentTypes || [], totalRev);
     renderExpensesBreakdown(data.expensesBreakdown || [], totalExp);
 
@@ -1819,13 +2126,49 @@ async function loadSalesReport() {
     // 6. Render Workshop Operations
     renderWorkshopPipeline(data.workshop || {});
 
-    // 7. Render Detailed Orders Table
-    renderReportOrdersTable(data.orders || []);
+    // 7. Render Detailed Orders Table (respecting live search text if any)
+    filterReportTable();
 
   } catch (err) {
     console.error('Error al cargar reporte de ventas:', err);
     showToast('Error al calcular el reporte: ' + err.message, 'error');
   }
+}
+
+function renderPaymentMethodsBreakdown(methods, totalRev) {
+  const container = document.getElementById('paymentMethodsBreakdownContainer');
+  if (!container) return;
+
+  if (!methods || methods.length === 0) {
+    container.innerHTML = '<p style="color:#94a3b8; font-size:0.88rem; text-align:center; padding:1.5rem 0;">Sin ventas en el período.</p>';
+    return;
+  }
+
+  const colorMap = {
+    EFECTIVO: '#10b981',
+    DEBITO: '#2563eb',
+    CREDITO: '#7c3aed',
+    TRANSFERENCIA: '#0891b2'
+  };
+
+  let html = '';
+  methods.forEach(m => {
+    const pct = totalRev > 0 ? Math.round((m.revenue / totalRev) * 100) : 0;
+    const color = colorMap[m.paymentMethod] || '#0077e6';
+    html += `
+      <div class="breakdown-item">
+        <div class="breakdown-row">
+          <span>${formatPaymentMethod(m.paymentMethod)} (${m.count} ped)</span>
+          <span>${formatMoney(m.revenue)} <small style="color:#64748b; font-weight:600;">(${pct}%)</small></span>
+        </div>
+        <div class="breakdown-progress-bg">
+          <div class="breakdown-progress-fill" style="width: ${pct}%; background: ${color};"></div>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
 }
 
 function renderDailySalesChart(dailyData) {
@@ -2076,8 +2419,10 @@ function renderWorkshopPipeline(workshop) {
   if (elRecCount) elRecCount.textContent = countMap['RECIBIDO'] || 0;
   if (elRecAmt) elRecAmt.textContent = `${formatMoney(totalMap['RECIBIDO'] || 0)} en taller`;
 
-  if (elProcCount) elProcCount.textContent = countMap['EN_PROCESO'] || 0;
-  if (elProcAmt) elProcAmt.textContent = `${formatMoney(totalMap['EN_PROCESO'] || 0)} en lavado/secado`;
+  const procCount = (countMap['EN_LAVADO'] || 0) + (countMap['EN_PROCESO'] || 0);
+  const procTotal = (totalMap['EN_LAVADO'] || 0) + (totalMap['EN_PROCESO'] || 0);
+  if (elProcCount) elProcCount.textContent = procCount;
+  if (elProcAmt) elProcAmt.textContent = `${formatMoney(procTotal)} en lavado/secado`;
 
   if (elListoCount) elListoCount.textContent = countMap['LISTO'] || 0;
   if (elListoAmt) elListoAmt.textContent = `${formatMoney(totalMap['LISTO'] || 0)} listos`;
@@ -2101,8 +2446,48 @@ function renderWorkshopPipeline(workshop) {
     }
   }
 
+  // Upcoming deliveries table (Hoy y próximos 2 días)
+  renderUpcomingWorkshopTable((workshop && workshop.upcoming) || []);
+
   // Ready for pickup list
   renderReadyPickupTable((workshop && workshop.readyForPickup) || []);
+}
+
+function renderUpcomingWorkshopTable(upcomingOrders) {
+  const tbody = document.getElementById('upcomingWorkshopTableBody');
+  const badge = document.getElementById('upcomingWorkshopBadge');
+  if (!tbody) return;
+
+  if (!upcomingOrders || upcomingOrders.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 1.75rem; color: #94a3b8;">
+          No hay entregas programadas para hoy ni los próximos 2 días.
+        </td>
+      </tr>
+    `;
+    if (badge) badge.textContent = '0 próximas';
+    return;
+  }
+
+  if (badge) badge.textContent = `${upcomingOrders.length} próxima(s)`;
+
+  let rowsHtml = '';
+  upcomingOrders.forEach(u => {
+    const urgencyHtml = getDeliveryUrgencyBadgeHtml(u);
+    rowsHtml += `
+      <tr>
+        <td><strong style="color: #d90429; font-size: 0.95rem;">${u.folio}</strong></td>
+        <td><strong style="color: #071933;">${u.client_name}</strong></td>
+        <td>📞 ${u.client_phone || 'Sin teléfono'}</td>
+        <td><strong>📅 ${formatDate(u.delivery_date)}</strong>${urgencyHtml}</td>
+        <td><span class="status-pill status-${u.status}">${formatStatus(u.status)}</span></td>
+        <td style="text-align: right;"><strong style="color: #071933;">${formatMoney(u.total)}</strong></td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = rowsHtml;
 }
 
 function renderReadyPickupTable(readyOrders) {
@@ -2224,16 +2609,24 @@ function renderReportOrdersTable(orders) {
     totalRevenueSum += (o.total || 0);
 
     const clientPhone = o.client_phone ? `<br><small style="color:#64748b;">📞 ${o.client_phone}</small>` : '';
+    const clientRutHtml = o.client_rut ? `<br><small style="color:#475569; font-family:monospace;">RUT: ${sanitizeRut(o.client_rut)}</small>` : '';
     const itemsTooltip = (o.itemsSummary || '').replace(/"/g, '&quot;');
+    const urgencyHtml = getDeliveryUrgencyBadgeHtml(o);
+    const exitHtml = o.exit_date
+      ? `<br><span class="exit-date-badge">🚪 Salida: ${formatDate(o.exit_date)}</span>`
+      : '';
+    const pm = o.payment_method || 'EFECTIVO';
 
     rowsHtml += `
       <tr>
         <td><strong style="color: #d90429; font-size: 0.95rem;">${o.folio}</strong></td>
         <td>
-          <span>${formatDate(o.reception_date)}</span>
+          <small style="color:#64748b;">📥 Recep: ${formatDate(o.reception_date)}</small><br>
+          <small style="color:#0284c7; font-weight:700;">📅 Est: ${formatDate(o.delivery_date)}</small>${urgencyHtml}${exitHtml}
         </td>
         <td>
           <strong style="color: #071933;">${o.client_name}</strong>
+          ${clientRutHtml}
           ${clientPhone}
         </td>
         <td>
@@ -2254,7 +2647,8 @@ function renderReportOrdersTable(orders) {
         <td>
           <span style="font-weight: 800; font-size: 0.8rem; color: ${o.payment_status === 'PAGADO' ? '#15803d' : '#b45309'};">
             ${o.payment_status === 'PAGADO' ? '✅ PAGADO' : '⏳ PENDIENTE'}
-          </span>
+          </span><br>
+          <span class="payment-method-badge pm-${pm}">${formatPaymentMethod(pm)}</span>
         </td>
         <td style="text-align: right;">
           <strong style="color: #071933; font-size: 1rem;">${formatMoney(o.total)}</strong>
@@ -2272,6 +2666,7 @@ function filterReportTable() {
   if (!state.lastReportData || !state.lastReportData.orders) return;
   const input = document.getElementById('reportTableSearch');
   const query = input ? input.value.toLowerCase().trim() : '';
+  const rutQuery = query.replace(/\./g, '');
 
   if (!query) {
     renderReportOrdersTable(state.lastReportData.orders);
@@ -2281,6 +2676,7 @@ function filterReportTable() {
   const filtered = state.lastReportData.orders.filter(o => 
     o.folio.toLowerCase().includes(query) ||
     o.client_name.toLowerCase().includes(query) ||
+    (o.client_rut && sanitizeRut(o.client_rut).toLowerCase().includes(rutQuery)) ||
     (o.client_phone && o.client_phone.includes(query)) ||
     (o.itemsSummary && o.itemsSummary.toLowerCase().includes(query))
   );
@@ -2302,14 +2698,17 @@ function exportSalesReportCSV() {
   const headers = [
     'Folio',
     'Fecha Recepcion',
-    'Fecha Entrega',
+    'Fecha Entrega Estimada',
+    'Fecha Salida Local',
     'Cliente',
+    'RUT',
     'Telefono',
     'Prendas Detalle',
     'Cantidad Prendas',
     'Tipo Documento',
     'Estado Pedido',
     'Estado Pago',
+    'Medio Pago',
     'Total (CLP)'
   ];
 
@@ -2317,13 +2716,16 @@ function exportSalesReportCSV() {
     `"${o.folio}"`,
     `"${o.reception_date || ''}"`,
     `"${o.delivery_date || ''}"`,
+    `"${o.exit_date || ''}"`,
     `"${(o.client_name || '').replace(/"/g, '""')}"`,
+    `"${sanitizeRut(o.client_rut || '')}"`,
     `"${(o.client_phone || '').replace(/"/g, '""')}"`,
     `"${(o.itemsSummary || '').replace(/"/g, '""')}"`,
     o.itemsCount || 0,
     `"${o.document_type || 'BOLETA'}"`,
     `"${o.status || ''}"`,
     `"${o.payment_status || ''}"`,
+    `"${o.payment_method || 'EFECTIVO'}"`,
     Math.round(o.total || 0)
   ]);
 

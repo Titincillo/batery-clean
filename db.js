@@ -103,10 +103,12 @@ function initDatabase() {
       folio TEXT NOT NULL UNIQUE,
       client_id INTEGER,
       client_name TEXT NOT NULL,
+      client_rut TEXT,
       client_phone TEXT,
       client_address TEXT,
       reception_date TEXT NOT NULL,
       delivery_date TEXT NOT NULL,
+      exit_date TEXT,
       document_type TEXT DEFAULT 'BOLETA',
       status TEXT DEFAULT 'RECIBIDO',
       payment_status TEXT DEFAULT 'PENDIENTE',
@@ -121,6 +123,29 @@ function initDatabase() {
       FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL
     );
   `);
+
+  // Safe migrations for existing databases: add client_rut and exit_date columns
+  try {
+    db.exec('ALTER TABLE orders ADD COLUMN client_rut TEXT;');
+  } catch (e) {
+    // Column already exists
+  }
+  try {
+    db.exec('ALTER TABLE orders ADD COLUMN exit_date TEXT;');
+  } catch (e) {
+    // Column already exists
+  }
+
+  // Normalize RUTs without dots & align legacy workshop status values
+  try {
+    db.exec("UPDATE clients SET rut = REPLACE(rut, '.', '') WHERE rut LIKE '%.%';");
+    db.exec("UPDATE orders SET client_rut = (SELECT REPLACE(c.rut, '.', '') FROM clients c WHERE c.id = orders.client_id) WHERE (client_rut IS NULL OR client_rut = '') AND client_id IS NOT NULL;");
+    db.exec("UPDATE orders SET client_rut = REPLACE(client_rut, '.', '') WHERE client_rut LIKE '%.%';");
+    db.exec("UPDATE orders SET status = 'EN_LAVADO' WHERE status = 'EN_PROCESO';");
+    db.exec("UPDATE orders SET exit_date = delivery_date WHERE status = 'ENTREGADO' AND (exit_date IS NULL OR exit_date = '');");
+  } catch (e) {
+    console.warn('Migration cleanup warning:', e.message);
+  }
 
   // 5. Order Items
   db.exec(`
