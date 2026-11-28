@@ -3,1497 +3,1559 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Batery Clean - Lavado de Alta Energía</title>
-  <link rel="stylesheet" href="/css/styles.css">
-  <link rel="icon" href="/assets/logo.jpeg" type="image/jpeg">
+  <title>Lavandería SaaS — El Software Definitivo para Lavanderías y Tintorerías</title>
+  <meta name="description" content="Sistema integral SaaS en la nube para lavanderías y tintorerías: pedidos, guías de recepción, notificaciones automáticas por WhatsApp y Modo Offline para planes Premium.">
+  <link rel="icon" href="assets/lavanderia_oficial.jpeg" type="image/jpeg">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #0284C7;
+      --primary-hover: #0369A1;
+      --primary-light: #E0F2FE;
+      --secondary: #2563EB;
+      --accent: #F97316;
+      --accent-hover: #EA580C;
+      --dark-navy: #0B192C;
+      --slate-900: #0F172A;
+      --slate-800: #1E293B;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-400: #94A3B8;
+      --slate-100: #F1F5F9;
+      --white: #FFFFFF;
+      --cyan: #06B6D4;
+      --cyan-light: #CFFAFE;
+      --green: #10B981;
+      --green-light: #D1FAE5;
+      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-main);
+      color: var(--slate-800);
+      background-color: #FAFAFC;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ---------------- UTILITY & LAYOUT ---------------- */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .badge-primary {
+      background: rgba(2, 132, 199, 0.12);
+      color: var(--primary);
+      border: 1px solid rgba(2, 132, 199, 0.25);
+    }
+    .badge-accent {
+      background: rgba(249, 115, 22, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(249, 115, 22, 0.25);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 13px 26px;
+      border-radius: var(--radius-md);
+      font-size: 0.98rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: var(--white);
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--primary-hover) 0%, #1D4ED8 100%);
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: var(--white);
+      color: var(--slate-800);
+      border: 1.5px solid var(--slate-100);
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-secondary:hover {
+      background: var(--slate-100);
+      border-color: #CBD5E1;
+      transform: translateY(-1px);
+    }
+    .btn-accent {
+      background: linear-gradient(135deg, var(--accent) 0%, #EA580C 100%);
+      color: var(--white);
+      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+    }
+    .btn-accent:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(249, 115, 22, 0.45);
+    }
+    .btn-sm {
+      padding: 8px 18px;
+      font-size: 0.88rem;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ---------------- NAVBAR ---------------- */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      transition: all 0.3s ease;
+    }
+    .nav-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 78px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .brand-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);
+      object-fit: cover;
+    }
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .brand-name {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--dark-navy);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .brand-name span {
+      color: var(--primary);
+    }
+    .brand-tag {
+      font-size: 0.72rem;
+      color: var(--slate-600);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      list-style: none;
+    }
+    .nav-link {
+      text-decoration: none;
+      color: var(--slate-600);
+      font-weight: 600;
+      font-size: 0.94rem;
+      transition: color 0.2s ease;
+    }
+    .nav-link:hover {
+      color: var(--primary);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* ---------------- HERO SECTION ---------------- */
+    .hero {
+      position: relative;
+      padding: 70px 0 90px;
+      background: radial-gradient(circle at 50% 0%, rgba(2, 132, 199, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
+      overflow: hidden;
+    }
+    .hero-content {
+      text-align: center;
+      max-width: 880px;
+      margin: 0 auto;
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 3.4rem;
+      font-weight: 800;
+      color: var(--dark-navy);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin: 20px 0 20px;
+    }
+    .hero-title .gradient-text {
+      background: linear-gradient(135deg, var(--primary) 0%, #2563EB 50%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      font-size: 1.22rem;
+      color: var(--slate-600);
+      line-height: 1.6;
+      margin-bottom: 34px;
+      max-width: 760px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero-ctas {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .hero-trust {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      font-size: 0.9rem;
+      color: var(--slate-600);
+      flex-wrap: wrap;
+    }
+    .hero-trust-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hero-trust-item span.icon {
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    /* ---------------- MOCKUP PREVIEW (HERO) ---------------- */
+    .hero-mockup-wrapper {
+      margin-top: 55px;
+      position: relative;
+      perspective: 1000px;
+    }
+    .hero-mockup {
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      border: 1.5px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 30px 60px -15px rgba(2, 132, 199, 0.18), 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+    }
+    .mockup-header {
+      background: #0F172A;
+      color: var(--white);
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .mockup-dots {
+      display: flex;
+      gap: 8px;
+    }
+    .mockup-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .mockup-dot.red { background: #EF4444; }
+    .mockup-dot.yellow { background: #F59E0B; }
+    .mockup-dot.green { background: #10B981; }
+    .mockup-url {
+      background: #1E293B;
+      color: #94A3B8;
+      font-size: 0.8rem;
+      padding: 4px 20px;
+      border-radius: 6px;
+      font-family: monospace;
+    }
+    .mockup-body {
+      padding: 28px;
+      background: #F8FAFC;
+    }
+    .mockup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr 1fr;
+      gap: 20px;
+      text-align: left;
+    }
+    .mockup-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      border: 1px solid #E2E8F0;
+      box-shadow: var(--shadow-sm);
+    }
+    .mockup-card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--slate-800);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--slate-100);
+    }
+    .mockup-order-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed #F1F5F9;
+      font-size: 0.84rem;
+    }
+    .mockup-order-item strong {
+      color: var(--slate-800);
+    }
+    .mockup-status-pill {
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .status-lavado { background: #FEF3C7; color: #D97706; }
+    .status-listo { background: #D1FAE5; color: #059669; }
+    .status-entregado { background: #E0F2FE; color: #0284C7; }
+
+    /* Mockup WhatsApp Bubble */
+    .mockup-wa-box {
+      background: #DCF8C6;
+      border: 1px solid #C3E6CB;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 0.8rem;
+      color: #075E54;
+      line-height: 1.4;
+      margin-top: 10px;
+      position: relative;
+    }
+    .mockup-wa-header {
+      font-weight: 800;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ---------------- STATS COUNTER ---------------- */
+    .stats-section {
+      background: var(--white);
+      border-top: 1px solid #E2E8F0;
+      border-bottom: 1px solid #E2E8F0;
+      padding: 45px 0;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      text-align: center;
+    }
+    .stat-number {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .stat-label {
+      font-size: 0.92rem;
+      color: var(--slate-600);
+      font-weight: 600;
+    }
+
+    /* ---------------- FEATURES SECTION ---------------- */
+    .features {
+      padding: 100px 0;
+    }
+    .section-header {
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto 60px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--dark-navy);
+      letter-spacing: -0.02em;
+      margin: 14px 0;
+    }
+    .section-desc {
+      font-size: 1.1rem;
+      color: var(--slate-600);
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+    }
+    .feature-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 34px 28px;
+      border: 1.5px solid #E2E8F0;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-xl);
+      border-color: #BAE6FD;
+    }
+    .feature-icon-box {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      margin-bottom: 22px;
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    .feature-card:nth-child(2) .feature-icon-box { background: #FEF3C7; color: #D97706; }
+    .feature-card:nth-child(3) .feature-icon-box { background: #D1FAE5; color: #059669; }
+    .feature-card:nth-child(4) .feature-icon-box { background: #EDE9FE; color: #7C3AED; }
+    .feature-card:nth-child(5) .feature-icon-box { background: #FCE7F3; color: #DB2777; }
+    .feature-card:nth-child(6) .feature-icon-box { background: #CFFAFE; color: #0891B2; }
+
+    .feature-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--dark-navy);
+      margin-bottom: 12px;
+    }
+    .feature-text {
+      color: var(--slate-600);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* ---------------- STEP FLOW ---------------- */
+    .flow-section {
+      background: var(--dark-navy);
+      color: var(--white);
+      padding: 100px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .flow-section .section-title {
+      color: var(--white);
+    }
+    .flow-section .section-desc {
+      color: var(--slate-400);
+    }
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 26px;
+      position: relative;
+      margin-top: 50px;
+    }
+    .flow-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-lg);
+      padding: 30px 24px;
+      position: relative;
+    }
+    .flow-step-num {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: rgba(56, 189, 248, 0.35);
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+    .flow-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #F8FAFC;
+    }
+    .flow-desc {
+      font-size: 0.92rem;
+      color: #94A3B8;
+      line-height: 1.55;
+    }
+
+    /* ---------------- OFFLINE-FIRST SPOTLIGHT ---------------- */
+    .offline-spotlight {
+      padding: 90px 0;
+      background: linear-gradient(135deg, #0284C7 0%, #1D4ED8 100%);
+      color: var(--white);
+    }
+    .spotlight-content {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 50px;
+      align-items: center;
+    }
+    .spotlight-text h2 {
+      font-family: var(--font-display);
+      font-size: 2.6rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 18px;
+    }
+    .spotlight-text p {
+      font-size: 1.1rem;
+      opacity: 0.92;
+      margin-bottom: 26px;
+      line-height: 1.6;
+    }
+    .spotlight-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 30px;
+    }
+    .spotlight-bullet {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .spotlight-bullet span.icon {
+      background: rgba(255, 255, 255, 0.2);
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+    }
+    .spotlight-card {
+      background: var(--white);
+      color: var(--slate-800);
+      border-radius: var(--radius-xl);
+      padding: 36px 30px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    .spotlight-card h3 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--dark-navy);
+      margin-bottom: 16px;
+    }
+    .spotlight-card p {
+      color: var(--slate-600);
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+    .ip-box {
+      background: #F1F5F9;
+      border: 1px dashed #CBD5E1;
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-family: monospace;
+      font-size: 0.95rem;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ---------------- PRICING SECTION ---------------- */
+    .pricing {
+      padding: 100px 0;
+      background: #FAFAFC;
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      align-items: stretch;
+    }
+    .pricing-card {
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      padding: 40px 32px;
+      border: 1.5px solid #E2E8F0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .pricing-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-xl);
+    }
+    .pricing-card.featured {
+      border: 2.5px solid var(--primary);
+      box-shadow: 0 20px 40px -10px rgba(2, 132, 199, 0.25);
+    }
+    .pricing-popular-tag {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: var(--white);
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 4px 16px;
+      border-radius: 999px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .pricing-plan-name {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--dark-navy);
+      margin-bottom: 6px;
+    }
+    .pricing-plan-desc {
+      color: var(--slate-600);
+      font-size: 0.92rem;
+      margin-bottom: 24px;
+      min-height: 44px;
+    }
+    .pricing-price {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 28px;
+    }
+    .price-currency {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--dark-navy);
+    }
+    .price-amount {
+      font-family: var(--font-display);
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: var(--dark-navy);
+      line-height: 1;
+    }
+    .price-period {
+      font-size: 0.9rem;
+      color: var(--slate-400);
+      font-weight: 600;
+    }
+    .pricing-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      margin-bottom: 32px;
+      border-top: 1px solid var(--slate-100);
+      padding-top: 24px;
+    }
+    .pricing-feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.92rem;
+      color: var(--slate-700);
+    }
+    .pricing-feature-item .icon {
+      color: var(--primary);
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ---------------- TESTIMONIAL / CASE STUDY ---------------- */
+    .case-study {
+      padding: 90px 0;
+      background: var(--white);
+      border-top: 1px solid #E2E8F0;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    .case-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: center;
+    }
+    .case-badge {
+      display: inline-block;
+      margin-bottom: 14px;
+    }
+    .case-quote {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--dark-navy);
+      line-height: 1.5;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .case-author {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .case-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      border: 2px solid var(--primary);
+    }
+    .case-author-info strong {
+      display: block;
+      color: var(--dark-navy);
+      font-size: 1.05rem;
+    }
+    .case-author-info span {
+      font-size: 0.88rem;
+      color: var(--slate-600);
+    }
+    .case-stats-card {
+      background: #F8FAFC;
+      border: 1.5px solid #E2E8F0;
+      border-radius: var(--radius-xl);
+      padding: 34px;
+    }
+    .case-stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .case-stat-box strong {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--primary);
+      display: block;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .case-stat-box span {
+      font-size: 0.88rem;
+      color: var(--slate-600);
+      font-weight: 600;
+    }
+
+    /* ---------------- FAQ SECTION ---------------- */
+    .faq {
+      padding: 100px 0;
+    }
+    .faq-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .faq-item {
+      background: var(--white);
+      border: 1.5px solid #E2E8F0;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .faq-item:hover {
+      border-color: #CBD5E1;
+    }
+    .faq-question {
+      padding: 20px 24px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--dark-navy);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .faq-question .icon {
+      font-size: 1.2rem;
+      color: var(--primary);
+      transition: transform 0.3s ease;
+    }
+    .faq-answer {
+      padding: 0 24px 20px;
+      color: var(--slate-600);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      display: none;
+    }
+    .faq-item.active .faq-answer {
+      display: block;
+    }
+    .faq-item.active .faq-question .icon {
+      transform: rotate(45deg);
+    }
+
+    /* ---------------- FINAL CTA ---------------- */
+    .final-cta {
+      padding: 90px 0;
+      background: radial-gradient(circle at 50% 50%, #0F2A4A 0%, #0B192C 100%);
+      color: var(--white);
+      text-align: center;
+      position: relative;
+    }
+    .final-cta h2 {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 18px;
+    }
+    .final-cta p {
+      font-size: 1.2rem;
+      color: #94A3B8;
+      max-width: 640px;
+      margin: 0 auto 36px;
+    }
+    .final-cta-btns {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* ---------------- FOOTER ---------------- */
+    .footer {
+      background: #070F1E;
+      color: #94A3B8;
+      padding: 60px 0 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.9rem;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1.2fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .footer-brand .brand-name {
+      color: var(--white);
+    }
+    .footer-brand p {
+      margin-top: 12px;
+      max-width: 320px;
+      line-height: 1.6;
+      color: #64748B;
+    }
+    .footer-title {
+      color: var(--white);
+      font-weight: 700;
+      margin-bottom: 16px;
+      font-size: 0.98rem;
+    }
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-links a {
+      color: #94A3B8;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .footer-links a:hover {
+      color: var(--white);
+    }
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    /* ---------------- RESPONSIVE ---------------- */
+    @media (max-width: 1024px) {
+      .hero-title { font-size: 2.8rem; }
+      .mockup-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; }
+      .flow-grid { grid-template-columns: repeat(2, 1fr); }
+      .spotlight-content { grid-template-columns: 1fr; }
+      .case-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero-title { font-size: 2.2rem; }
+      .features-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .flow-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Top App Header -->
-  <header class="app-header">
-    <div class="header-container">
-      <div class="brand-section">
-        <img src="/assets/logo.jpeg" alt="Logo Lavandería Batery Clean" class="brand-logo-img">
-        <div class="brand-titles">
-          <h1>BATERY <span class="clean-accent">CLEAN</span></h1>
-          <p>⚡ Lavado de Alta Energía ⚡</p>
+  <!-- ==================== NAVBAR ==================== -->
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="/" class="brand">
+        <img src="assets/lavanderia_oficial.jpeg" alt="Logo Lavandería SaaS" class="brand-logo">
+        <div class="brand-text">
+          <span class="brand-name">Lavandería<span>SaaS</span></span>
+          <span class="brand-tag">Gestión & Control</span>
         </div>
-      </div>
+      </a>
 
-      <div class="header-meta">
-        <div class="header-meta-item">
-          <span>📍 Calle Villa Alegre 603, Nacimiento</span>
-        </div>
-        <div class="header-meta-item">
-          <span>📞 +569 68096021</span>
-        </div>
-        <div class="offline-badge" title="Toda la información se guarda de forma segura en este computador sin requerir conexión a internet">
-          100% Offline (Local SQLite)
-        </div>
-      </div>
-    </div>
-  </header>
+      <ul class="nav-links">
+        <li><a href="#caracteristicas" class="nav-link">Funciones</a></li>
+        <li><a href="#como-funciona" class="nav-link">Cómo Funciona</a></li>
+        <li><a href="#offline" class="nav-link">Modo Offline</a></li>
+        <li><a href="#precios" class="nav-link">Planes</a></li>
+        <li><a href="#faq" class="nav-link">Preguntas</a></li>
+      </ul>
 
-  <!-- App Navigation Bar -->
-  <nav class="app-nav">
-    <div class="nav-container">
-      <button type="button" class="nav-tab active" data-target="nueva-guia">
-        📝 Recepción
-      </button>
-      <button type="button" class="nav-tab" data-target="pedidos-list">
-        🧺 Control de Pedidos <span class="nav-badge" id="pendingNavBadge" style="display:none;">0</span>
-      </button>
-      <button type="button" class="nav-tab" data-target="clientes-list">
-        👥 Clientes
-      </button>
-      <button type="button" class="nav-tab" data-target="precios-catalog">
-        🏷️ Catálogo & Precios
-      </button>
-      <button type="button" class="nav-tab" data-target="gastos-list">
-        💸 Gastos
-      </button>
-      <button type="button" class="nav-tab" data-target="reportes-ventas">
-        📊 Reportes
-      </button>
-      <button type="button" class="nav-tab" data-target="ajustes">
-        ⚙️ Ajustes
-      </button>
+      <div class="nav-actions">
+        <a href="/app" class="btn btn-secondary btn-sm">Iniciar Sesión</a>
+        <a href="#precios" class="btn btn-primary btn-sm">Comenzar Gratis</a>
+      </div>
     </div>
   </nav>
 
-  <!-- Main Content Container -->
-  <main class="main-content">
-
-    <!-- KPI Quick Stats -->
-    <section class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon" style="background: #e0f2fe; color: #0284c7;">📥</div>
-        <div class="stat-info">
-          <h4>Pedidos Hoy</h4>
-          <div class="stat-value" id="statTodayOrders">0</div>
+  <!-- ==================== HERO SECTION ==================== -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="badge badge-primary">
+          <span>⚡</span> Plataforma Especializada para Lavanderías & Tintorerías
         </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background: #dcfce7; color: #16a34a;">💰</div>
-        <div class="stat-info">
-          <h4>Ventas Hoy</h4>
-          <div class="stat-value" id="statTodayRevenue">$0</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background: #fef3c7; color: #d97706;">🧼</div>
-        <div class="stat-info">
-          <h4>Pendientes Lavado</h4>
-          <div class="stat-value" id="statPendingOrders">0</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background: #ede9fe; color: #7c3aed;">👥</div>
-        <div class="stat-info">
-          <h4>Clientes Registrados</h4>
-          <div class="stat-value" id="statTotalClients">0</div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Upcoming / Overdue Deliveries Alert Banner -->
-    <section id="upcomingDeliveriesBanner" class="upcoming-alerts-banner" style="display: none;">
-      <!-- Populated dynamically via JS from /api/stats -->
-    </section>
+        <h1 class="hero-title">
+          El Software para Gestionar tu Lavandería <span class="gradient-text">sin Papeles ni Enredos</span>
+        </h1>
 
-    <!-- ==================== TAB 1: NUEVA GUÍA DE RECEPCIÓN ==================== -->
-    <section id="nueva-guia" class="tab-pane active">
-      <div class="order-form-container">
-        
-        <!-- Left Column: Form Fields & Services Selection -->
-        <div class="form-main-content">
+        <p class="hero-subtitle">
+          Toma pedidos en 30 segundos, imprime guías de recepción con folios automáticos, notifica por WhatsApp en 1 clic y mantén tu caja y clientes bajo control. <strong>100% SaaS en la nube desde cualquier dispositivo, con Modo Offline en planes Premium.</strong>
+        </p>
 
-          <!-- Client & Metadata Card -->
-          <div class="form-card">
-            <div class="card-header">
-              <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <img src="/assets/logo.jpeg" alt="Logo" style="height: 38px; width: auto; max-width: 55px; object-fit: contain; border-radius: 6px; background: #ffffff; padding: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <h3 style="margin: 0;">
-                  <span>📋 Guía de Recepción (No es Boleta)</span>
-                </h3>
+        <div class="hero-ctas">
+          <a href="/app" class="btn btn-primary" style="font-size: 1.05rem; padding: 15px 32px;">
+            <span>🚀</span> Ingresar al Sistema
+          </a>
+          <a href="https://wa.me/56968096021?text=Hola!%20Quiero%20solicitar%20una%20demostraci%C3%B3n%20del%20SaaS%20de%20Lavander%C3%ADa" target="_blank" class="btn btn-secondary" style="font-size: 1.05rem; padding: 15px 28px;">
+            <span>💬</span> Hablar con un Asesor
+          </a>
+        </div>
+
+        <div class="hero-trust">
+          <div class="hero-trust-item">
+            <span class="icon">✓</span> 100% SaaS en la Nube
+          </div>
+          <div class="hero-trust-item">
+            <span class="icon">✓</span> Modo Offline en Planes Premium
+          </div>
+          <div class="hero-trust-item">
+            <span class="icon">✓</span> WhatsApp con 1 Clic
+          </div>
+          <div class="hero-trust-item">
+            <span class="icon">✓</span> Soporte en Chile y LatAm
+          </div>
+        </div>
+
+        <!-- ==================== LIVE DASHBOARD PREVIEW ==================== -->
+        <div class="hero-mockup-wrapper">
+          <div class="hero-mockup">
+            <div class="mockup-header">
+              <div class="mockup-dots">
+                <span class="mockup-dot red"></span>
+                <span class="mockup-dot yellow"></span>
+                <span class="mockup-dot green"></span>
               </div>
-              <div class="folio-badge-display" id="folioDisplay">
-                FOLIO Nº 000001
-              </div>
+              <div class="mockup-url">app.lavanderiasaas.cl &mdash; [PLATAFORMA SAAS EN LA NUBE]</div>
+              <div style="font-size: 0.8rem; color: #38BDF8; font-weight: 700;">🟢 Nube Sincronizada</div>
             </div>
 
-            <div class="card-body">
-              <div class="reception-form-grid">
-                <div class="form-group" style="position: relative;">
-                  <label for="clientName">Nombre del Cliente *</label>
-                  <input type="text" id="clientName" class="form-control" placeholder="Escribe el nombre del cliente..." autocomplete="off">
-                  <div id="clientSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 8px 16px rgba(0,0,0,0.15); z-index:50; max-height:220px; overflow-y:auto;"></div>
-                </div>
-
-                <div class="form-group">
-                  <label for="clientRut">RUT (sin puntos)</label>
-                  <input type="text" id="clientRut" class="form-control" placeholder="Ej: 12345678-9" autocomplete="off" style="font-family: monospace; font-weight: 700;">
-                </div>
-
-                <div class="form-group">
-                  <label for="clientPhone">Teléfono / Fono (WhatsApp)</label>
-                  <input type="tel" id="clientPhone" class="form-control" placeholder="+569 12345678">
-                </div>
-
-                <div class="form-group">
-                  <label for="clientAddress">Dirección</label>
-                  <input type="text" id="clientAddress" class="form-control" placeholder="Ej: Calle Villa Alegre 123, Nacimiento">
-                </div>
-
-                <div class="form-group">
-                  <label for="orderReceptionDate">Fecha de Recepción</label>
-                  <input type="date" id="orderReceptionDate" class="form-control">
-                </div>
-
-                <div class="form-group">
-                  <label for="orderDeliveryDate">Fecha de Entrega Estimada</label>
-                  <input type="date" id="orderDeliveryDate" class="form-control">
-                </div>
-
-                <div class="form-group">
-                  <label>Tipo de Documento</label>
-                  <div class="compact-segmented-control">
-                    <label class="compact-segment-option">
-                      <input type="radio" name="docType" value="BOLETA" checked>
-                      <span>Boleta</span>
-                    </label>
-                    <label class="compact-segment-option">
-                      <input type="radio" name="docType" value="FACTURA">
-                      <span>Factura</span>
-                    </label>
-                    <label class="compact-segment-option">
-                      <input type="radio" name="docType" value="NINGUNO">
-                      <span>Ninguno</span>
-                    </label>
+            <div class="mockup-body">
+              <div class="mockup-grid">
+                <!-- Columna 1: Toma de Pedidos -->
+                <div class="mockup-card">
+                  <div class="mockup-card-title">
+                    <span>📝 Nueva Recepción</span>
+                    <span style="color: var(--primary); font-family: monospace;">Folio #000142</span>
+                  </div>
+                  <div class="mockup-order-item">
+                    <span>Cliente:</span>
+                    <strong>Carlos Henríquez</strong>
+                  </div>
+                  <div class="mockup-order-item">
+                    <span>1x Cobertor Plumón 2P</span>
+                    <strong>$14.000</strong>
+                  </div>
+                  <div class="mockup-order-item">
+                    <span>2x Pantalón de Vestir</span>
+                    <strong>$9.000</strong>
+                  </div>
+                  <div class="mockup-order-item">
+                    <span>Servicio:</span>
+                    <strong style="color: #0284C7;">Lavado + Planchado</strong>
+                  </div>
+                  <div style="margin-top: 12px; padding-top: 8px; border-top: 1.5px solid #E2E8F0; display: flex; justify-content: space-between; font-weight: 800;">
+                    <span>Total a Pagar:</span>
+                    <span style="color: var(--primary); font-size: 1.1rem;">$23.000</span>
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label>Estado de Pago</label>
-                  <div class="compact-segmented-control">
-                    <label class="compact-segment-option option-pending">
-                      <input type="radio" name="paymentStatus" value="PENDIENTE" checked>
-                      <span>⏳ Pendiente</span>
-                    </label>
-                    <label class="compact-segment-option option-paid">
-                      <input type="radio" name="paymentStatus" value="PAGADO">
-                      <span>💳 Pagado</span>
-                    </label>
+                <!-- Columna 2: Estados en Vivo -->
+                <div class="mockup-card">
+                  <div class="mockup-card-title">
+                    <span>🧺 Tablero de Estados de Prendas</span>
+                    <span style="font-size: 0.75rem; color: var(--slate-400);">Hoy</span>
+                  </div>
+                  <div class="mockup-order-item">
+                    <div>
+                      <strong>#000140 &middot; Ana Martínez</strong>
+                      <div style="font-size: 0.74rem; color: var(--slate-400);">3 prendas &middot; Frazadas</div>
+                    </div>
+                    <span class="mockup-status-pill status-lavado">🧼 En Lavado</span>
+                  </div>
+                  <div class="mockup-order-item">
+                    <div>
+                      <strong>#000139 &middot; Rodrigo Soto</strong>
+                      <div style="font-size: 0.74rem; color: var(--slate-400);">1 Terno completo</div>
+                    </div>
+                    <span class="mockup-status-pill status-listo">✅ Listo Retiro</span>
+                  </div>
+                  <div class="mockup-order-item">
+                    <div>
+                      <strong>#000138 &middot; Marcela Gómez</strong>
+                      <div style="font-size: 0.74rem; color: var(--slate-400);">Sábanas y Manteles</div>
+                    </div>
+                    <span class="mockup-status-pill status-entregado">📦 Entregado</span>
                   </div>
                 </div>
 
-                <div class="form-group span-2">
-                  <label>Medio de Pago</label>
-                  <div class="compact-segmented-control">
-                    <label class="compact-segment-option">
-                      <input type="radio" name="paymentMethod" value="EFECTIVO" checked>
-                      <span>💵 Efectivo</span>
-                    </label>
-                    <label class="compact-segment-option">
-                      <input type="radio" name="paymentMethod" value="DEBITO">
-                      <span>💳 Débito</span>
-                    </label>
-                    <label class="compact-segment-option">
-                      <input type="radio" name="paymentMethod" value="CREDITO">
-                      <span>💳 Crédito</span>
-                    </label>
-                    <label class="compact-segment-option">
-                      <input type="radio" name="paymentMethod" value="TRANSFERENCIA">
-                      <span>🏦 Transferencia</span>
-                    </label>
+                <!-- Columna 3: WhatsApp Automático -->
+                <div class="mockup-card" style="background: #F0FDF4; border-color: #BBF7D0;">
+                  <div class="mockup-card-title" style="color: #166534;">
+                    <span>📲 Aviso por WhatsApp</span>
+                    <span style="color: #16A34A; font-weight: 800;">1 Clic</span>
+                  </div>
+                  <div class="mockup-wa-box">
+                    <div class="mockup-wa-header">
+                      <span>🟢</span> Lavandería Oficial
+                    </div>
+                    <p>¡Hola Rodrigo! 👋 Le saludamos de la lavandería. Le informamos que su pedido <strong>Folio #000139</strong> ya está listo para retiro. Total: <strong>$12.500</strong>. ¡Muchas gracias!</p>
+                  </div>
+                  <div style="margin-top: 10px; text-align: center;">
+                    <span style="font-size: 0.75rem; color: #166534; font-weight: 700;">✓ Mensaje redactado automáticamente</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- Services Catalog Selection Card (Organized in 2 columns like the flyer) -->
-          <div class="form-card">
-            <div class="card-header">
-              <h3>
-                <span>🧺 Prendas y Servicios del Afiche</span>
-              </h3>
-              <button type="button" class="btn btn-sm btn-outline" id="btnAddCustomService">
-                ➕ Otra prenda personalizada
-              </button>
-            </div>
-
-            <div class="card-body">
-              <!-- Services Search Bar -->
-              <div class="services-catalog-header">
-                <div class="search-input-wrapper">
-                  <input type="text" id="servicesSearch" class="form-control" placeholder="🔍 Filtrar prenda (ej: plumón, casaca, terno, camisa...)">
-                </div>
-              </div>
-
-              <!-- Two Columns Grid Matching Physical Flyer -->
-              <div class="catalog-columns-wrapper">
-                <div class="catalog-col" id="servicesCol1">
-                  <!-- Injected via JS -->
-                </div>
-                <div class="catalog-col" id="servicesCol2">
-                  <!-- Injected via JS -->
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Special Services & Observations -->
-          <div class="form-card">
-            <div class="card-header">
-              <h3>
-                <span>⭐ Servicio Especial & Observaciones</span>
-              </h3>
-            </div>
-            <div class="card-body">
-              <!-- Special Services Bar -->
-              <div class="special-services-bar">
-                <div class="special-services-title">
-                  ★ SERVICIOS ESPECIALES
-                </div>
-                <div class="special-checkboxes-grid">
-                  <label class="special-checkbox-item">
-                    <input type="checkbox" value="Blanqueador"> Blanqueador
-                  </label>
-                  <label class="special-checkbox-item">
-                    <input type="checkbox" value="Desmanchado"> Desmanchado
-                  </label>
-                  <label class="special-checkbox-item">
-                    <input type="checkbox" value="Colgador"> Colgador
-                  </label>
-                  <label class="special-checkbox-item">
-                    <input type="checkbox" value="Bolsa"> Bolsa
-                  </label>
-                  <label class="special-checkbox-item">
-                    <input type="checkbox" value="Ropa ignífuga"> Ropa ignífuga
-                  </label>
-                </div>
-              </div>
-
-              <!-- Observations Textarea -->
-              <div class="form-group" style="margin-top: 1rem;">
-                <label for="orderObservations">✏️ Observaciones de las prendas (roturas, manchas previas, etc.):</label>
-                <textarea id="orderObservations" class="form-control" rows="3" placeholder="Detalles específicos sobre el estado de la ropa entregada..."></textarea>
-              </div>
-            </div>
-          </div>
-
         </div>
 
-        <!-- Right Column: Sticky Summary & Action Buttons -->
-        <aside class="order-summary-sidebar">
-          <div class="summary-card">
-            <div class="summary-header">
-              <div style="display: flex; align-items: center; gap: 0.55rem;">
-                <img src="/assets/logo.jpeg" alt="Logo" style="height: 32px; width: auto; max-width: 46px; object-fit: contain; border-radius: 4px; background: #ffffff; padding: 1px;">
-                <h3 style="margin: 0;">Resumen de la Guía</h3>
-              </div>
-              <small id="summaryItemsCount" style="color: var(--cyan-glow); font-weight: bold;">0 prendas</small>
-            </div>
-
-            <div class="summary-total-banner">
-              <div class="total-label">TOTAL GUÍA DE RECEPCIÓN</div>
-              <div class="total-amount" id="summaryTotalAmount">$0</div>
-            </div>
-
-            <div class="summary-items-list" id="summaryItemsList">
-              <!-- Dynamic item list -->
-              <div style="text-align: center; color: #94a3b8; padding: 1.5rem 0; font-size: 0.9rem;">
-                ⚡ Selecciona las prendas del afiche para armar la guía.
-              </div>
-            </div>
-
-            <div class="summary-actions">
-              <button type="button" class="btn btn-success" id="btnSaveAndPrintOrder" style="font-size: 1.05rem;">
-                🖨️ Guardar e Imprimir
-              </button>
-              <button type="button" class="btn btn-primary" id="btnSaveOrder">
-                💾 Guardar Pedido
-              </button>
-              <button type="button" class="btn btn-secondary" id="btnResetForm">
-                🔄 Limpiar Formulario
-              </button>
-            </div>
-          </div>
-        </aside>
-
-      </div>
-    </section>
-
-    <!-- ==================== TAB 2: LISTADO & CONTROL DE PEDIDOS ==================== -->
-    <section id="pedidos-list" class="tab-pane">
-      <div class="form-card">
-        <div class="card-header">
-          <h3>
-            <span>🧺 Control de Pedidos & Estados</span>
-          </h3>
-          <div class="card-toolbar">
-            <input type="text" id="orderSearchInput" class="form-control" placeholder="🔍 Buscar folio, cliente, RUT, fono..." oninput="loadOrders()">
-            <select id="orderStatusFilter" class="form-control" onchange="loadOrders()">
-              <option value="TODOS">Todos los Estados</option>
-              <option value="PROXIMAS">⏰ Entregas Próximas / Atrasadas</option>
-              <option value="RECIBIDO">📥 Recibido</option>
-              <option value="EN_LAVADO">🧼 En Lavado</option>
-              <option value="LISTO">✅ Listo p/Retiro</option>
-              <option value="ENTREGADO">📦 Entregado</option>
-              <option value="CANCELADO">❌ Cancelado</option>
-            </select>
-            <select id="orderPaymentMethodFilter" class="form-control" onchange="loadOrders()">
-              <option value="TODOS">Todos Medios Pago</option>
-              <option value="EFECTIVO">💵 Efectivo</option>
-              <option value="DEBITO">💳 Débito</option>
-              <option value="CREDITO">💳 Crédito</option>
-              <option value="TRANSFERENCIA">🏦 Transferencia</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="card-body" style="padding: 0;">
-          <div class="orders-table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Folio</th>
-                  <th>Cliente</th>
-                  <th>Fechas (Recep. / Entrega / Salida)</th>
-                  <th>Estado</th>
-                  <th>Pago / Medio</th>
-                  <th>Prendas</th>
-                  <th>Total</th>
-                  <th style="text-align: center;">Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="ordersTableBody">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== TAB 3: CLIENTES ==================== -->
-    <section id="clientes-list" class="tab-pane">
-      <div class="form-card">
-        <div class="card-header">
-          <h3>
-            <span>👥 Directorio de Clientes</span>
-          </h3>
-          <div class="card-toolbar">
-            <input type="text" id="clientSearchInput" class="form-control" placeholder="🔍 Buscar nombre, fono, correo, RUT..." oninput="loadClients()">
-            <button type="button" class="btn btn-outline" id="btnToggleClientsGrid" title="Mostrar u Ocultar la Grilla de Clientes">
-              👁️ <span id="toggleGridBtnText">Ocultar Grilla</span>
-            </button>
-            <button type="button" class="btn btn-success" id="btnOpenNewClientModal">
-              ➕ Nuevo Cliente
-            </button>
-          </div>
-        </div>
-
-        <!-- Toolbar para personalizar columnas visibles de la grilla -->
-        <div class="grid-columns-toolbar" id="gridColumnsToolbar">
-          <div class="grid-columns-pills">
-            <span class="grid-toolbar-label">👁️ Columnas:</span>
-            <label class="column-toggle-pill">
-              <input type="checkbox" id="colToggleEmail" checked onchange="toggleClientColumn('col-email', this.checked)"> Correo
-            </label>
-            <label class="column-toggle-pill">
-              <input type="checkbox" id="colToggleRut" checked onchange="toggleClientColumn('col-rut', this.checked)"> RUT
-            </label>
-            <label class="column-toggle-pill">
-              <input type="checkbox" id="colToggleOrders" checked onchange="toggleClientColumn('col-orders', this.checked)"> Pedidos
-            </label>
-            <label class="column-toggle-pill optional-col">
-              <input type="checkbox" id="colToggleAddress" onchange="toggleClientColumn('col-address', this.checked)"> Dirección
-            </label>
-            <label class="column-toggle-pill optional-col">
-              <input type="checkbox" id="colToggleDate" onchange="toggleClientColumn('col-date', this.checked)"> Fecha Integración
-            </label>
-          </div>
-          <div class="grid-toolbar-hint">
-            Dirección y fecha ocultas por defecto
-          </div>
-        </div>
-
-        <div class="card-body" id="clientsGridContainer" style="padding: 0;">
-          <div class="orders-table-wrapper">
-            <table class="data-table" id="clientsTable">
-              <thead>
-                <tr>
-                  <th class="col-name">Cliente</th>
-                  <th class="col-phone">Teléfono (WhatsApp)</th>
-                  <th class="col-email">Correo Electrónico</th>
-                  <th class="col-rut">RUT</th>
-                  <th class="col-orders">Historial Pedidos</th>
-                  <th class="col-address col-hidden">Dirección</th>
-                  <th class="col-date col-hidden">Fecha Integración</th>
-                  <th style="text-align: center;">Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="clientsTableBody">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Banner cuando la grilla está oculta -->
-        <div id="clientsGridHiddenNotice" style="display: none; padding: 3rem 1.5rem; text-align: center; color: #64748b; background: #f8fafc;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">👁️‍🗨️</div>
-          <h4 style="color: #334155; margin-bottom: 0.35rem;">La grilla de clientes está oculta</h4>
-          <p style="font-size: 0.9rem; margin-bottom: 1rem;">Haz clic en el botón para volver a visualizar la tabla de clientes.</p>
-          <button type="button" class="btn btn-outline btn-sm" onclick="toggleClientsGridVisibility(true)">
-            👁️ Mostrar Grilla de Clientes
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== TAB 4: CATÁLOGO & PRECIOS ==================== -->
-    <section id="precios-catalog" class="tab-pane">
-      <div class="form-card">
-        <div class="card-header card-header-stacked">
-          <div class="card-header-title-centered">
-            <h2>
-              <span>🏷️ Catálogo de Prendas y Servicios</span>
-            </h2>
-          </div>
-          <div class="card-toolbar-fullwidth">
-            <input type="text" id="catalogSearchInput" class="form-control" placeholder="🔍 Filtrar prenda..." oninput="filterPricesCatalog()">
-            <select id="catalogCategoryFilter" class="form-control" onchange="filterPricesCatalog()">
-              <option value="TODAS">📁 Todas las categorías</option>
-              <option value="Lavado General">Lavado General</option>
-              <option value="Prendas Básicas">Prendas Básicas</option>
-              <option value="Hogar y Cama">Hogar y Cama</option>
-              <option value="Abrigos y Casacas">Abrigos y Casacas</option>
-              <option value="Trajes y Formal">Trajes y Formal</option>
-              <option value="Vestuario">Vestuario</option>
-              <option value="Trabajo e Institucional">Trabajo e Institucional</option>
-              <option value="Especiales">Especiales</option>
-              <option value="Otros">Otros</option>
-            </select>
-            <button type="button" class="btn btn-success" id="btnOpenNewServiceModal" onclick="openServiceModal()">
-              ➕ Agregar Servicio
-            </button>
-          </div>
-        </div>
-        <div class="card-body">
-          <p style="margin-bottom: 1rem; color: #64748b; font-size: 0.9rem;">
-            Aquí puedes agregar nuevas prendas, cambiar categorías o editar los nombres y precios. Todos los cambios se reflejan automáticamente en la toma de pedidos.
-          </p>
-          <div class="orders-table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th style="min-width: 200px;">Prenda / Servicio</th>
-                  <th style="min-width: 170px;">Categoría</th>
-                  <th style="width: 160px;">Precio (CLP)</th>
-                  <th style="text-align: center; width: 220px;">Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="pricesTableBody">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== TAB 5: GASTOS E INSUMOS ==================== -->
-    <section id="gastos-list" class="tab-pane">
-      <div class="form-card">
-        <!-- Centered Header with 1-Line Fullwidth Toolbar -->
-        <div class="card-header card-header-stacked">
-          <div class="card-header-title-centered">
-            <h2>
-              <span>💸 Control de Gastos & Insumos</span>
-            </h2>
-          </div>
-          <div class="card-toolbar-fullwidth">
-            <input type="text" id="expenseSearchInput" class="form-control" placeholder="🔍 Buscar producto, insumo, detalle..." oninput="loadExpenses()">
-            <select id="expenseTypeFilter" class="form-control" onchange="loadExpenses()">
-              <option value="TODOS">📁 Todos los tipos de gasto</option>
-              <option value="Detergentes y Químicos">🧼 Detergentes y Químicos</option>
-              <option value="Suavizantes">🌸 Suavizantes y Aromas</option>
-              <option value="Bolsas y Empaques">🛍️ Bolsas y Empaques</option>
-              <option value="Insumos de Limpieza">🧹 Insumos de Limpieza</option>
-              <option value="Mantenimiento de Máquinas">🔧 Mantenimiento de Máquinas</option>
-              <option value="Servicios Básicos">⚡ Servicios Básicos (Luz/Agua/Gas)</option>
-              <option value="Otros">📦 Otros Gastos</option>
-            </select>
-            <button type="button" class="btn btn-success" id="btnOpenNewExpenseModal" onclick="openExpenseModal()">
-              ➕ Registrar Gasto
-            </button>
-          </div>
-        </div>
-
-        <div class="card-body" style="padding: 1.5rem;">
-          <!-- Quick Expenses KPI Row -->
-          <div class="reports-kpi-grid" style="margin-bottom: 1.25rem;">
-            <div class="report-kpi-card">
-              <div class="kpi-icon" style="background:#fee2e2; color:#dc2626;">💸</div>
-              <div class="kpi-content">
-                <span class="kpi-title">Total Gastos</span>
-                <span class="kpi-value text-revenue" style="color:#dc2626;" id="expenseTotalAmount">$0</span>
-                <small class="kpi-subtitle">Monto total invertido</small>
-              </div>
-            </div>
-
-            <div class="report-kpi-card">
-              <div class="kpi-icon" style="background:#e0f2fe; color:#0369a1;">📦</div>
-              <div class="kpi-content">
-                <span class="kpi-title">Compras Registradas</span>
-                <span class="kpi-value" id="expenseTotalCount">0</span>
-                <small class="kpi-subtitle">Insumos y productos</small>
-              </div>
-            </div>
-
-            <div class="report-kpi-card">
-              <div class="kpi-icon" style="background:#fef3c7; color:#b45309;">🏷️</div>
-              <div class="kpi-content">
-                <span class="kpi-title">Gasto Promedio</span>
-                <span class="kpi-value text-amber" id="expenseAvgAmount">$0</span>
-                <small class="kpi-subtitle">Por compra registrada</small>
-              </div>
-            </div>
-
-            <div class="report-kpi-card">
-              <div class="kpi-icon" style="background:#f3e8ff; color:#7e22ce;">🔝</div>
-              <div class="kpi-content">
-                <span class="kpi-title">Mayor Inversión</span>
-                <span class="kpi-value" style="font-size: 1.15rem; color:#7e22ce;" id="expenseTopCategory">-</span>
-                <small class="kpi-subtitle" id="expenseTopAmount">$0</small>
-              </div>
-            </div>
-          </div>
-
-          <!-- Expenses Table -->
-          <div class="orders-table-wrapper">
-            <table class="data-table" id="expensesTable">
-              <thead>
-                <tr>
-                  <th style="width: 140px;">Fecha Compra</th>
-                  <th style="min-width: 220px;">Nombre Producto</th>
-                  <th style="min-width: 180px;">Tipo de Producto</th>
-                  <th style="width: 150px; text-align: right;">Precio (CLP)</th>
-                  <th style="text-align: center; width: 170px;">Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="expensesTableBody">
-                <!-- Injected via JS -->
-              </tbody>
-              <tfoot>
-                <tr style="background: #f8fafc; font-weight: 800; border-top: 2px solid #cbd5e1;">
-                  <td colspan="3">TOTAL GASTOS REGISTRADOS:</td>
-                  <td style="text-align: right; color: #dc2626; font-size: 1.05rem;" id="expensesTableFooterTotal">$0</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== TAB 6: REPORTES DE VENTAS ==================== -->
-    <section id="reportes-ventas" class="tab-pane">
-      <div class="form-card">
-        <!-- Centered Header -->
-        <div class="card-header card-header-stacked">
-          <div class="card-header-title-centered" style="flex-direction: column; gap: 0.35rem;">
-            <img src="/assets/logo.jpeg" alt="Logo Batery Clean" style="height: 48px; width: auto; max-width: 72px; object-fit: contain; border-radius: 6px;">
-            <h2>
-              <span>📊 Centro de Reportes y Estadísticas de Negocio</span>
-            </h2>
-          </div>
-
-          <!-- Quick Date Filter Presets -->
-          <div class="reports-presets-bar">
-            <span class="presets-label">⚡ Período Rápido:</span>
-            <div class="presets-buttons-wrap">
-              <button type="button" class="preset-pill active" data-preset="today" onclick="setReportPreset('today')">Hoy</button>
-              <button type="button" class="preset-pill" data-preset="this-week" onclick="setReportPreset('this-week')">Esta Semana</button>
-              <button type="button" class="preset-pill" data-preset="this-month" onclick="setReportPreset('this-month')">Este Mes</button>
-              <button type="button" class="preset-pill" data-preset="last-month" onclick="setReportPreset('last-month')">Mes Anterior</button>
-              <button type="button" class="preset-pill" data-preset="this-year" onclick="setReportPreset('this-year')">Año Actual</button>
-              <button type="button" class="preset-pill" data-preset="all" onclick="setReportPreset('all')">Todo el Historial</button>
-            </div>
-          </div>
-
-          <!-- Filter Controls Row -->
-          <div class="reports-filter-row">
-            <div class="filter-item">
-              <label for="reportStartDate">📅 Desde</label>
-              <input type="date" id="reportStartDate" class="form-control" onchange="onCustomDateChange()">
-            </div>
-            <div class="filter-item">
-              <label for="reportEndDate">📅 Hasta</label>
-              <input type="date" id="reportEndDate" class="form-control" onchange="onCustomDateChange()">
-            </div>
-            <div class="filter-item">
-              <label for="reportPaymentStatus">💳 Estado Pago</label>
-              <select id="reportPaymentStatus" class="form-control" onchange="loadSalesReport()">
-                <option value="TODOS">Todos Pagos</option>
-                <option value="PAGADO">✅ Pagados</option>
-                <option value="PENDIENTE">⏳ Pendientes</option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <label for="reportPaymentMethod">💵 Medio Pago</label>
-              <select id="reportPaymentMethod" class="form-control" onchange="syncDetailPaymentMethodFilter(this.value)">
-                <option value="TODOS">Todos Medios</option>
-                <option value="EFECTIVO">💵 Efectivo</option>
-                <option value="DEBITO">💳 Débito</option>
-                <option value="CREDITO">💳 Crédito</option>
-                <option value="TRANSFERENCIA">🏦 Transferencia</option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <label for="reportDocType">📄 Tipo Doc</label>
-              <select id="reportDocType" class="form-control" onchange="loadSalesReport()">
-                <option value="TODOS">Todos Docs</option>
-                <option value="BOLETA">Boleta</option>
-                <option value="FACTURA">Factura</option>
-                <option value="NINGUNO">Ninguno</option>
-              </select>
-            </div>
-            <div class="filter-actions">
-              <button type="button" class="btn btn-primary" onclick="loadSalesReport()" title="Recalcular informe">
-                🔍 Filtrar
-              </button>
-              <button type="button" class="btn btn-outline" onclick="exportSalesReportCSV()" title="Descargar en Excel CSV">
-                📥 Excel (CSV)
-              </button>
-              <button type="button" class="btn btn-outline" onclick="printSalesReport()" title="Imprimir informe en PDF o papel">
-                🖨️ Imprimir
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card-body" style="padding: 1.5rem;">
-          <!-- Reports Sub-Navigation Bar -->
-          <div class="reports-subnav-bar">
-            <button type="button" class="report-subnav-btn active" data-report-view="finanzas" onclick="switchReportSubView('finanzas')">
-              💰 Balance y Finanzas
-            </button>
-            <button type="button" class="report-subnav-btn" data-report-view="prendas" onclick="switchReportSubView('prendas')">
-              🧺 Prendas y Servicios
-            </button>
-            <button type="button" class="report-subnav-btn" data-report-view="clientes" onclick="switchReportSubView('clientes')">
-              👥 Clientes y Cobranzas
-            </button>
-            <button type="button" class="report-subnav-btn" data-report-view="taller" onclick="switchReportSubView('taller')">
-              ⏱️ Taller y Operaciones
-            </button>
-            <button type="button" class="report-subnav-btn" data-report-view="detalle" onclick="switchReportSubView('detalle')">
-              📋 Auditoría de Pedidos
-            </button>
-          </div>
-
-          <!-- ================= SUB-VIEW 1: BALANCE Y FINANZAS ================= -->
-          <div id="reportSubView-finanzas" class="report-view-pane active">
-            <!-- Financial KPI Grid -->
-            <div class="reports-kpi-grid">
-              <div class="report-kpi-card highlight-revenue">
-                <div class="kpi-icon" style="background:#dcfce7; color:#15803d;">💰</div>
-                <div class="kpi-content">
-                  <span class="kpi-title">Ventas Totales</span>
-                  <span class="kpi-value text-revenue" id="kpiTotalRevenue">$0</span>
-                  <small class="kpi-subtitle" id="kpiTotalOrders">0 pedidos</small>
-                </div>
-              </div>
-
-              <div class="report-kpi-card" style="border-left: 4px solid #ef4444;">
-                <div class="kpi-icon" style="background:#fee2e2; color:#dc2626;">💸</div>
-                <div class="kpi-content">
-                  <span class="kpi-title">Gastos del Período</span>
-                  <span class="kpi-value" style="color: #dc2626;" id="kpiTotalExpenses">$0</span>
-                  <small class="kpi-subtitle" id="kpiExpensesCount">0 compras registradas</small>
-                </div>
-              </div>
-
-              <div class="report-kpi-card" style="border-left: 4px solid #10b981;">
-                <div class="kpi-icon" style="background:#d1fae5; color:#047857;">📈</div>
-                <div class="kpi-content">
-                  <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="kpi-title">Utilidad Neta</span>
-                    <span class="profit-badge positive" id="kpiProfitMargin">0% margen</span>
-                  </div>
-                  <span class="kpi-value" style="color:#0f766e;" id="kpiNetProfit">$0</span>
-                  <small class="kpi-subtitle">Ventas menos Gastos</small>
-                </div>
-              </div>
-
-              <div class="report-kpi-card highlight-paid">
-                <div class="kpi-icon" style="background:#d1fae5; color:#047857;">💳</div>
-                <div class="kpi-content">
-                  <span class="kpi-title">Total Cobrado</span>
-                  <span class="kpi-value text-success" id="kpiPaidRevenue">$0</span>
-                  <small class="kpi-subtitle" id="kpiPaidPercent">0% del total</small>
-                </div>
-              </div>
-
-              <div class="report-kpi-card highlight-pending">
-                <div class="kpi-icon" style="background:#fef3c7; color:#b45309;">⏳</div>
-                <div class="kpi-content">
-                  <span class="kpi-title">Por Cobrar</span>
-                  <span class="kpi-value text-amber" id="kpiPendingRevenue">$0</span>
-                  <small class="kpi-subtitle" id="kpiPendingPercent">0% pendiente</small>
-                </div>
-              </div>
-            </div>
-
-            <!-- Daily Revenue vs Expenses Comparison Chart -->
-            <div class="chart-box" style="margin-bottom: 1.5rem;">
-              <div class="chart-header">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <h4>📈 Evolución Diaria: Ventas vs Gastos</h4>
-                  <div style="display: flex; gap: 0.75rem; font-size: 0.78rem; font-weight: 700;">
-                    <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 10px; height: 10px; background: #0077e6; border-radius: 2px;"></span> Ventas</span>
-                    <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 10px; height: 10px; background: #dc2626; border-radius: 2px;"></span> Gastos</span>
-                  </div>
-                </div>
-                <span class="chart-badge" id="chartPeriodBadge">Día a día</span>
-              </div>
-              <div class="chart-body" id="salesTimelineContainer">
-                <!-- SVG / HTML5 dynamic bar chart injected via JS -->
-              </div>
-            </div>
-
-            <!-- 3-Column Breakdowns (Payment Methods, Tax Documents, Expense Categories) -->
-            <div class="reports-grid-3col">
-              <!-- Payment Methods (Efectivo / Débito / Crédito / Transferencia) -->
-              <div class="chart-box">
-                <div class="chart-header">
-                  <h4>💳 Ventas por Medio de Pago</h4>
-                  <span class="chart-badge">Caja y Tarjetas</span>
-                </div>
-                <div class="breakdown-list" id="paymentMethodsBreakdownContainer">
-                  <!-- Injected via JS -->
-                </div>
-              </div>
-
-              <!-- Tax Documents (Boleta / Factura / Ninguno) -->
-              <div class="chart-box">
-                <div class="chart-header">
-                  <h4>📄 Ventas por Tipo de Documento</h4>
-                  <span class="chart-badge">Tributario / SII</span>
-                </div>
-                <div class="breakdown-list" id="docTypesBreakdownContainer">
-                  <!-- Injected via JS -->
-                </div>
-              </div>
-
-              <!-- Expenses by Category -->
-              <div class="chart-box">
-                <div class="chart-header">
-                  <h4>💸 Gastos por Categoría</h4>
-                  <span class="chart-badge">Insumos y Costos</span>
-                </div>
-                <div class="breakdown-list" id="expensesBreakdownContainer">
-                  <!-- Injected via JS -->
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ================= SUB-VIEW 2: PRENDAS Y SERVICIOS ================= -->
-          <div id="reportSubView-prendas" class="report-view-pane">
-            <div class="reports-kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
-              <div class="report-kpi-card highlight-items">
-                <div class="kpi-icon" style="background:#ede9fe; color:#6d28d9;">👕</div>
-                <div class="kpi-content">
-                  <span class="kpi-title">Prendas Procesadas</span>
-                  <span class="kpi-value" id="kpiPrendasTotal">0 prendas</span>
-                  <small class="kpi-subtitle">Volumen total de lavado</small>
-                </div>
-              </div>
-
-              <div class="report-kpi-card">
-                <div class="kpi-icon" style="background:#e0f2fe; color:#0284c7;">🎫</div>
-                <div class="kpi-content">
-                  <span class="kpi-title">Ticket Promedio</span>
-                  <span class="kpi-value" id="kpiPrendasAvgTicket">$0</span>
-                  <small class="kpi-subtitle">Promedio por cada orden</small>
-                </div>
-              </div>
-
-              <div class="report-kpi-card">
-                <div class="kpi-icon" style="background:#fef3c7; color:#d97706;">🏷️</div>
-                <div class="kpi-content">
-                  <span class="kpi-title">Valor Promedio por Prenda</span>
-                  <span class="kpi-value" id="kpiPrendasAvgItem">$0</span>
-                  <small class="kpi-subtitle">Ingreso promedio por unidad</small>
-                </div>
-              </div>
-            </div>
-
-            <div class="reports-grid-2col">
-              <!-- Top Selling Garments / Services -->
-              <div class="chart-box">
-                <div class="chart-header">
-                  <h4>🧺 Prendas Más Demandadas (Top 10)</h4>
-                  <span class="chart-badge">Por cantidad</span>
-                </div>
-                <div class="chart-body" id="topServicesContainer" style="padding: 1.15rem;">
-                  <!-- Top services list with progress bars injected via JS -->
-                </div>
-              </div>
-
-              <!-- Revenue by Service Category -->
-              <div class="chart-box">
-                <div class="chart-header">
-                  <h4>📊 Ingresos por Categoría de Servicio</h4>
-                  <span class="chart-badge">Distribución %</span>
-                </div>
-                <div class="breakdown-list" id="categoriesBreakdownContainer">
-                  <!-- Injected via JS -->
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ================= SUB-VIEW 3: CLIENTES Y COBRANZAS ================= -->
-          <div id="reportSubView-clientes" class="report-view-pane">
-            <!-- Debtors / Accounts Receivable Section -->
-            <div class="chart-box" style="margin-bottom: 1.5rem; border-top: 4px solid #f59e0b;">
-              <div class="chart-header" style="background: #fffbeb;">
-                <div>
-                  <h4 style="color: #92400e;">⏳ Cuentas por Cobrar (Clientes con Saldo Pendiente)</h4>
-                  <small style="color: #b45309;">Listado de clientes con pedidos pendientes de pago para gestión de cobranza directa.</small>
-                </div>
-                <span class="profit-badge negative" id="debtorsTotalBadge">$0 total adeudado</span>
-              </div>
-              <div class="orders-table-wrapper" style="padding: 0;">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Cliente</th>
-                      <th>Teléfono / WhatsApp</th>
-                      <th>Folios Pendientes</th>
-                      <th>Fecha Más Antigua</th>
-                      <th style="text-align: right;">Total Deuda</th>
-                      <th style="text-align: center; width: 140px;">Cobranza</th>
-                    </tr>
-                  </thead>
-                  <tbody id="debtorsTableBody">
-                    <!-- Injected via JS -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Top Spending Clients -->
-            <div class="chart-box">
-              <div class="chart-header">
-                <h4>👥 Clientes Más Frecuentes y de Mayor Compra (Top 10)</h4>
-                <span class="chart-badge">Fidelización</span>
-              </div>
-              <div class="orders-table-wrapper" style="padding: 0;">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th style="width: 60px;">#</th>
-                      <th>Nombre del Cliente</th>
-                      <th>Teléfono</th>
-                      <th style="text-align: center;">Pedidos Realizados</th>
-                      <th style="text-align: right;">Total Facturado</th>
-                      <th style="text-align: center;">Estado Saldo</th>
-                    </tr>
-                  </thead>
-                  <tbody id="topClientsTableBody">
-                    <!-- Injected via JS -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- ================= SUB-VIEW 4: TALLER Y OPERACIONES ================= -->
-          <div id="reportSubView-taller" class="report-view-pane">
-            <!-- Pipeline Cards -->
-            <div class="workshop-pipeline-grid">
-              <div class="workshop-pipe-card pipe-recibido">
-                <span class="workshop-pipe-title">📥 1. Recibidos</span>
-                <span class="workshop-pipe-count" id="pipeRecibidoCount">0</span>
-                <span class="workshop-pipe-amount" id="pipeRecibidoAmount">$0 en taller</span>
-              </div>
-              <div class="workshop-pipe-card pipe-enproceso">
-                <span class="workshop-pipe-title">🧼 2. En Proceso</span>
-                <span class="workshop-pipe-count" id="pipeEnProcesoCount">0</span>
-                <span class="workshop-pipe-amount" id="pipeEnProcesoAmount">$0 en lavado/secado</span>
-              </div>
-              <div class="workshop-pipe-card pipe-listo">
-                <span class="workshop-pipe-title">✨ 3. Listos para Entrega</span>
-                <span class="workshop-pipe-count" id="pipeListoCount">0</span>
-                <span class="workshop-pipe-amount" id="pipeListoAmount">$0 listos</span>
-              </div>
-              <div class="workshop-pipe-card pipe-entregado">
-                <span class="workshop-pipe-title">📦 4. Entregados</span>
-                <span class="workshop-pipe-count" id="pipeEntregadoCount">0</span>
-                <span class="workshop-pipe-amount" id="pipeEntregadoAmount">$0 completados</span>
-              </div>
-            </div>
-
-            <!-- Overdue Orders Warning Banner (if any) -->
-            <div id="workshopOverdueBanner" class="workshop-alert-banner" style="display: none;">
-              <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <span style="font-size: 1.8rem;">⚠️</span>
-                <div>
-                  <strong style="color: #991b1b; font-size: 0.95rem;" id="workshopOverdueTitle">0 Pedidos Atrasados</strong>
-                  <p style="color: #b91c1c; font-size: 0.85rem; margin: 0;" id="workshopOverdueSubtitle">Tienen fecha estimada de entrega vencida y aún no han sido entregados.</p>
-                </div>
-              </div>
-              <button type="button" class="btn btn-danger" style="height: 36px; font-size: 0.82rem;" onclick="filterTableByOverdue()">
-                Ver en Control de Pedidos
-              </button>
-            </div>
-
-            <!-- Upcoming Deliveries (Hoy y Próximos 2 Días) -->
-            <div class="chart-box" style="margin-bottom: 1.5rem; border-top: 4px solid #f59e0b;">
-              <div class="chart-header" style="background: #fffbeb;">
-                <h4 style="color: #92400e;">⏰ Entregas Más Próximas (Hoy y Próximos 2 Días)</h4>
-                <span class="chart-badge" id="upcomingWorkshopBadge" style="background:#fef3c7; color:#b45309;">0 próximas</span>
-              </div>
-              <div class="orders-table-wrapper" style="padding: 0;">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th style="width: 100px;">Folio</th>
-                      <th>Cliente</th>
-                      <th>Teléfono</th>
-                      <th>Entrega Estimada</th>
-                      <th>Estado Taller</th>
-                      <th style="text-align: right;">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody id="upcomingWorkshopTableBody">
-                    <!-- Injected via JS -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Ready for Pickup List -->
-            <div class="chart-box">
-              <div class="chart-header">
-                <h4>✨ Pedidos Listos Esperando Retiro del Cliente</h4>
-                <span class="chart-badge" id="readyForPickupBadge">0 listos</span>
-              </div>
-              <div class="orders-table-wrapper" style="padding: 0;">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th style="width: 100px;">Folio</th>
-                      <th>Cliente</th>
-                      <th>Teléfono</th>
-                      <th>Fecha Entrega Estimada</th>
-                      <th style="text-align: right;">Total</th>
-                      <th style="text-align: center; width: 150px;">Avisar Retiro</th>
-                    </tr>
-                  </thead>
-                  <tbody id="readyPickupTableBody">
-                    <!-- Injected via JS -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- ================= SUB-VIEW 5: DETALLE DE PEDIDOS ================= -->
-          <div id="reportSubView-detalle" class="report-view-pane">
-            <div class="reports-detail-section" style="margin-top: 0;">
-              <div class="detail-header" style="gap: 0.75rem;">
-                <div>
-                  <h4>📋 Detalle Completo de Ventas (<span id="detailOrdersCount">0</span>)</h4>
-                  <small style="color: #64748b; font-weight: 600;">Filtra al instante por medio de pago, folio, cliente o RUT</small>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
-                  <div class="detail-method-pills" id="detailPaymentMethodPills">
-                    <button type="button" class="method-pill active" data-method="TODOS" onclick="setDetailPaymentMethod('TODOS')">Todos</button>
-                    <button type="button" class="method-pill" data-method="EFECTIVO" onclick="setDetailPaymentMethod('EFECTIVO')">💵 Efectivo</button>
-                    <button type="button" class="method-pill" data-method="DEBITO" onclick="setDetailPaymentMethod('DEBITO')">💳 Débito</button>
-                    <button type="button" class="method-pill" data-method="CREDITO" onclick="setDetailPaymentMethod('CREDITO')">💳 Crédito</button>
-                    <button type="button" class="method-pill" data-method="TRANSFERENCIA" onclick="setDetailPaymentMethod('TRANSFERENCIA')">🏦 Transf.</button>
-                  </div>
-                  <input type="text" id="reportTableSearch" class="form-control detail-search" placeholder="🔍 Folio, cliente o RUT..." oninput="filterReportTable()">
-                </div>
-              </div>
-
-              <div class="orders-table-wrapper">
-                <table class="data-table" id="reportDetailTable">
-                  <thead>
-                    <tr>
-                      <th style="width: 95px;">Folio</th>
-                      <th style="min-width: 175px;">Fechas (Recep. / Est. / Salida)</th>
-                      <th style="min-width: 170px;">Cliente / RUT</th>
-                      <th style="min-width: 170px;">Prendas Lavadas</th>
-                      <th style="width: 95px;">Doc</th>
-                      <th style="width: 120px;">Estado</th>
-                      <th style="width: 145px;">Pago / Medio</th>
-                      <th style="text-align: right; width: 120px;">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody id="reportTableBody">
-                    <!-- Injected via JS -->
-                  </tbody>
-                  <tfoot>
-                    <tr style="background: #f1f5f9; font-weight: 800; border-top: 2px solid #cbd5e1;">
-                      <td colspan="3">TOTALES ACUMULADOS:</td>
-                      <td id="reportFooterItems">0 prendas</td>
-                      <td colspan="3"></td>
-                      <td style="text-align: right; color: #0077e6; font-size: 1.1rem;" id="reportFooterTotal">$0</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== TAB 6: AJUSTES ==================== -->
-    <section id="ajustes" class="tab-pane">
-      <div class="form-card">
-        <div class="card-header card-header-stacked">
-          <div class="card-header-title-centered">
-            <h2>
-              <span>⚙️ Ajustes del Sistema</span>
-            </h2>
-          </div>
-        </div>
-        <div class="card-body" style="padding: 2.5rem 1.5rem;">
-
-          <!-- Card de Exportación y Respaldo -->
-          <div style="max-width: 780px; margin: 0 auto; background: #ffffff; border: 1px solid var(--surface-border); border-radius: 12px; padding: 2rem; box-shadow: var(--shadow-sm);">
-            <div style="display: flex; align-items: flex-start; gap: 1.25rem; margin-bottom: 1.5rem;">
-              <img src="/assets/logo.jpeg" alt="Logo" style="width: 72px; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; padding: 2px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); flex-shrink: 0; background: #ffffff;">
-              <div>
-                <h3 style="color: var(--primary-navy); font-size: 1.25rem; font-weight: 800; margin-bottom: 0.35rem;">
-                  Exportar y Respaldar Base de Datos
-                </h3>
-                <p style="color: #64748b; font-size: 0.95rem; line-height: 1.5;">
-                  Descarga una copia de seguridad completa con todos los datos registrados en tu sistema local (clientes, catálogo de precios, servicios y pedidos). Guarda este archivo en un pendrive o en tu computador para tener siempre un respaldo seguro.
-                </p>
-              </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
-              <!-- Opción 1: Respaldo JSON Completo -->
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                  <div style="font-weight: 800; color: #0f172a; margin-bottom: 0.3rem; font-size: 1rem;">
-                    📄 Respaldo JSON Completo
-                  </div>
-                  <p style="color: #64748b; font-size: 0.85rem; line-height: 1.4; margin-bottom: 1.25rem;">
-                    Exporta todos los datos en formato estructurado JSON legible para migrar o consultar.
-                  </p>
-                </div>
-                <a href="/api/sync/export" download="batery_clean_backup.json" class="btn btn-primary" style="width: 100%; text-decoration: none;">
-                  📥 Descargar Copia JSON
-                </a>
-              </div>
-
-              <!-- Opción 2: Base de Datos Nativa SQLite (.db) -->
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                  <div style="font-weight: 800; color: #0f172a; margin-bottom: 0.3rem; font-size: 1rem;">
-                    🗄️ Archivo Nativo SQLite (.db)
-                  </div>
-                  <p style="color: #64748b; font-size: 0.85rem; line-height: 1.4; margin-bottom: 1.25rem;">
-                    Descarga directa del archivo de base de datos original <code style="font-size:0.8rem; background:#e2e8f0; padding:1px 4px; border-radius:3px;">batery_clean.db</code>.
-                  </p>
-                </div>
-                <a href="/api/backup/db" download="batery_clean_backup.db" class="btn btn-success" style="width: 100%; text-decoration: none;">
-                  💾 Descargar Archivo .db
-                </a>
-              </div>
-            </div>
-
-            <!-- Respaldo Status Info -->
-            <div style="margin-top: 1.5rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.85rem 1rem; display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #166534;">
-              <span>🛡️</span>
-              <span>Tus datos se guardan de forma <strong>100% local y privada</strong> en este computador sin depender de internet.</span>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ==================== MODAL DE IMPRESIÓN (RÉPLICA DEL AFICHE) ==================== -->
-  <div class="modal-overlay" id="printReceiptModal">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3>Vista Previa: Guía de Recepción</h3>
-        <button type="button" class="btn btn-sm btn-outline" id="btnClosePrintModal">✕ Cerrar</button>
-      </div>
-
-      <div class="modal-body">
-        <div id="receiptPrintContent">
-          <!-- Injected via JS matching flyer format -->
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('printReceiptModal').classList.remove('open')">Cerrar</button>
-        <button type="button" class="btn btn-primary" id="btnPrintReceiptAction">🖨️ Mandar a Imprimir (PDF / Papel)</button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- ==================== MODAL DE CLIENTE (CREAR / EDITAR) ==================== -->
-  <div class="modal-overlay" id="clientFormModal">
-    <div class="modal-container" style="max-width: 540px;">
-      <div class="modal-header">
-        <h3 id="clientModalTitle">➕ Nuevo Cliente</h3>
-        <button type="button" class="btn btn-sm btn-outline" id="btnCloseClientModal">✕</button>
-      </div>
-
-      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
-        <form id="clientForm" autocomplete="off">
-          <input type="hidden" id="modalClientId" value="">
-
-          <div class="form-group">
-            <label for="modalClientName">Nombre Completo *</label>
-            <input type="text" id="modalClientName" class="form-control" placeholder="Ej: Juan Pérez González" required>
-          </div>
-
-          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
-            <div class="form-group">
-              <label for="modalClientPhone">Teléfono / WhatsApp</label>
-              <input type="tel" id="modalClientPhone" class="form-control" placeholder="+569 1234 5678">
-            </div>
-
-            <div class="form-group">
-              <label for="modalClientEmail">Correo Electrónico</label>
-              <input type="email" id="modalClientEmail" class="form-control" placeholder="ejemplo@correo.com">
-            </div>
-          </div>
-
-          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
-            <div class="form-group">
-              <label for="modalClientRut">RUT (sin puntos, opcional)</label>
-              <input type="text" id="modalClientRut" class="form-control" placeholder="Ej: 12345678-9" style="font-family: monospace; font-weight: 700;">
-            </div>
-
-            <div class="form-group">
-              <label for="modalClientAddress">Dirección</label>
-              <input type="text" id="modalClientAddress" class="form-control" placeholder="Ej: Calle Villa Alegre 123, Nacimiento">
-            </div>
-          </div>
-
-          <div class="form-group" style="margin-bottom: 0;">
-            <label for="modalClientNotes">Notas u Observaciones del Cliente (Opcional)</label>
-            <textarea id="modalClientNotes" class="form-control" rows="3" placeholder="Ej: Cliente frecuente, solicitar confirmación de entrega por WhatsApp..."></textarea>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="btnCancelClientModal">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btnSaveClientModal">💾 Guardar Cliente</button>
+  <!-- ==================== STATS SECTION ==================== -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div>
+          <div class="stat-number">0</div>
+          <div class="stat-label">Papeles ni boletas perdidas</div>
+        </div>
+        <div>
+          <div class="stat-number">30s</div>
+          <div class="stat-label">Tiempo promedio de recepción</div>
+        </div>
+        <div>
+          <div class="stat-number">24/7</div>
+          <div class="stat-label">Acceso Cloud desde cualquier lugar</div>
+        </div>
+        <div>
+          <div class="stat-number">1 Clic</div>
+          <div class="stat-label">Notificación WhatsApp al cliente</div>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- ==================== MODAL DE CONFIRMACIÓN DE ELIMINACIÓN ==================== -->
-  <div class="modal-overlay" id="deleteConfirmModal">
-    <div class="modal-container" style="max-width: 480px;">
-      <div class="modal-header" style="background: #fef2f2; border-bottom: 1px solid #fee2e2;">
-        <h3 style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem;">
-          <span>⚠️ Confirmar Eliminación</span>
-        </h3>
-        <button type="button" class="btn btn-sm btn-outline" id="btnCloseDeleteModal">✕</button>
+  <!-- ==================== FEATURES SECTION ==================== -->
+  <section id="caracteristicas" class="features">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-primary">Herramientas Profesionales</div>
+        <h2 class="section-title">Todo lo que necesitas para tu local en una sola pantalla</h2>
+        <p class="section-desc">Diseñado exclusivamente para la dinámica rápida del mostrador de lavanderías y tintorerías.</p>
       </div>
 
-      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
-        <div style="text-align: center; margin-bottom: 1rem;">
-          <div style="width: 56px; height: 56px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 0.75rem;">
-            🗑️
-          </div>
-          <h4 id="deleteConfirmTitle" style="font-size: 1.15rem; color: #0f172a; margin-bottom: 0.4rem;">¿Eliminar cliente?</h4>
-          <p id="deleteConfirmMessage" style="color: #475569; font-size: 0.95rem; line-height: 1.5;">
-            Esta acción no se puede deshacer.
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📝</div>
+          <h3 class="feature-title">Guía de Recepción Rápida</h3>
+          <p class="feature-text">
+            Folio correlativo automático, búsqueda inteligente de clientes por nombre o teléfono, observaciones de prendas delicadas y cálculo inmediato en tiempo real.
           </p>
         </div>
 
-        <div id="deleteWarningOrdersBox" style="display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 0.85rem; font-size: 0.85rem; color: #92400e; margin-top: 0.75rem;">
-          ⚠️ <strong>Nota:</strong> Este cliente tiene <span id="deleteClientOrdersCount" style="font-weight: 800;">0</span> pedido(s) asociados en el historial. Sus pedidos históricos se conservarán intactos como respaldo.
+        <!-- Feature 2 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📲</div>
+          <h3 class="feature-title">Aviso por WhatsApp en 1 Clic</h3>
+          <p class="feature-text">
+            Avisa a tus clientes apenas sus prendas estén listas con un solo clic. El sistema genera el mensaje personalizado con el total, folio y agradecimiento.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">⚡</div>
+          <h3 class="feature-title">Modo Offline (Planes Premium)</h3>
+          <p class="feature-text">
+            ¿Se cortó la señal en tu sucursal? En planes Premium, el sistema guarda tus operaciones en caché segura y sincroniza automáticamente con la nube al volver la conexión.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">☁️</div>
+          <h3 class="feature-title">Acceso Cloud Multi-Dispositivo</h3>
+          <p class="feature-text">
+            Ingresa desde cualquier computador, tablet o smartphone con internet (4G/5G o Wi-Fi), dentro o fuera de tu lavandería, sin instalar programas.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🏷️</div>
+          <h3 class="feature-title">Catálogo de 41+ Prendas Editable</h3>
+          <p class="feature-text">
+            Catálogo precargado de ropa de cama, abrigos, sastrería y prendas delicadas. Modifica precios en pesos chilenos (CLP) o agrega nuevos servicios al instante.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📊</div>
+          <h3 class="feature-title">Caja, Gastos y Boletas</h3>
+          <p class="feature-text">
+            Control de cobros pendientes vs. pagados, clasificación por Boleta o Factura, registro de gastos operacionales y reportes de recaudación diaria.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FLOW SECTION ==================== -->
+  <section id="como-funciona" class="flow-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-primary" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8;">Flujo Simple</div>
+        <h2 class="section-title">De la recepción a la entrega en 4 pasos</h2>
+        <p class="section-desc">Olvídate de buscar boletas en cuadernos o talonarios de papel con copias manchadas.</p>
+      </div>
+
+      <div class="flow-grid">
+        <div class="flow-card">
+          <div class="flow-step-num">01</div>
+          <h4 class="flow-title">Recepción en Mostrador</h4>
+          <p class="flow-desc">Eliges el cliente, marcas las prendas del catálogo, registras observaciones y el sistema emite el folio automático con el comprobante digital.</p>
+        </div>
+
+        <div class="flow-card">
+          <div class="flow-step-num">02</div>
+          <h4 class="flow-title">Lavado & Secado</h4>
+          <p class="flow-desc">El pedido pasa a estado "En Lavado". Tu equipo sabe en todo momento qué prendas están en las lavadoras o secadoras.</p>
+        </div>
+
+        <div class="flow-card">
+          <div class="flow-step-num">03</div>
+          <h4 class="flow-title">WhatsApp Automático</h4>
+          <p class="flow-desc">Al terminar, marcas "Listo para Retiro" y con un clic le avisas al cliente directamente a su WhatsApp sin escribir nada a mano.</p>
+        </div>
+
+        <div class="flow-card">
+          <div class="flow-step-num">04</div>
+          <h4 class="flow-title">Entrega y Cierre de Caja</h4>
+          <p class="flow-desc">El cliente retira, se confirma el pago (Efectivo, Débito o Transferencia) y queda registrado en tu caja diaria sin descuadres.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== OFFLINE SPOTLIGHT ==================== -->
+  <section id="offline" class="offline-spotlight">
+    <div class="container">
+      <div class="spotlight-content">
+        <div class="spotlight-text">
+          <div class="badge" style="background: rgba(255, 255, 255, 0.2); color: #FFFFFF; margin-bottom: 15px;">
+            Exclusivo Planes Premium
+          </div>
+          <h2>100% en la nube, con Modo Offline en planes Premium</h2>
+          <p>
+            Opera desde cualquier lugar sin servidores ni instalaciones en tu negocio. Y con nuestros planes Premium, si se cae momentáneamente la señal, <strong>Lavandería SaaS</strong> resguarda tu operación en caché segura para sincronizarla al reconectar.
+          </p>
+
+          <ul class="spotlight-bullets">
+            <li class="spotlight-bullet">
+              <span class="icon">✓</span> Plataforma 100% SaaS en la nube: cero instalaciones ni mantención.
+            </li>
+            <li class="spotlight-bullet">
+              <span class="icon">✓</span> Modo Offline inteligente (Planes Premium) con sincronización automática.
+            </li>
+            <li class="spotlight-bullet">
+              <span class="icon">✓</span> Privacidad absoluta: datos aislados por lavandería y respaldos exportables.
+            </li>
+          </ul>
+
+          <a href="/app" class="btn" style="background: #FFFFFF; color: var(--primary); font-weight: 800;">
+            🚀 Ingresar a la Plataforma SaaS
+          </a>
+        </div>
+
+        <div class="spotlight-card">
+          <h3>☁️ ¿Cómo accedes desde cualquier dispositivo?</h3>
+          <p>
+            Solo abres tu navegador en cualquier PC, tablet o celular e ingresas a tu cuenta SaaS en la nube:
+          </p>
+          <div class="ip-box">
+            <span>🌐 https://app.lavanderiasaas.cl</span>
+            <span style="font-size: 0.75rem; background: var(--green-light); color: var(--green); padding: 3px 8px; border-radius: 4px;">100% Cloud</span>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--slate-600); margin-bottom: 0;">
+            Sin cables ni configuraciones de red. En planes Premium, si pierdes conexión temporalmente, tus operaciones quedan en cola segura hasta que vuelva internet.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PRICING SECTION ==================== -->
+  <section id="precios" class="pricing">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-accent">Planes Claros & Flexibles</div>
+        <h2 class="section-title">Elige el plan ideal para tu lavandería</h2>
+        <p class="section-desc">Sin contratos forzosos ni comisiones por prenda. Cancela cuando quieras.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Plan 1 -->
+        <div class="pricing-card">
+          <div>
+            <h3 class="pricing-plan-name">Plan Emprendedor</h3>
+            <p class="pricing-plan-desc">Para lavanderías que quieren dejar el papel y operar 100% en la nube.</p>
+            <div class="pricing-price">
+              <span class="price-currency">$</span>
+              <span class="price-amount">19.990</span>
+              <span class="price-period">CLP / mes</span>
+            </div>
+
+            <ul class="pricing-features">
+              <li class="pricing-feature-item"><span class="icon">✓</span> Guías y folios ilimitados</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Avisos por WhatsApp en 1 Clic</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Acceso 100% en la nube (PC, tablet y móvil)</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Hasta 3 usuarios y 50 servicios</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Catálogo de prendas y precios editable</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Control de caja y boleta/factura</li>
+            </ul>
+          </div>
+
+          <a href="https://wa.me/56968096021?text=Hola,%20me%20interesa%20contratar%20el%20Plan%20Emprendedor" target="_blank" class="btn btn-secondary" style="width: 100%;">
+            Contratar Plan Emprendedor
+          </a>
+        </div>
+
+        <!-- Plan 2 (Featured) -->
+        <div class="pricing-card featured">
+          <div class="pricing-popular-tag">Premium · Más Elegido</div>
+          <div>
+            <h3 class="pricing-plan-name">Plan Profesional</h3>
+            <p class="pricing-plan-desc">Control total en la nube con reportes financieros, roles y Modo Offline incluido.</p>
+            <div class="pricing-price">
+              <span class="price-currency">$</span>
+              <span class="price-amount">34.990</span>
+              <span class="price-period">CLP / mes</span>
+            </div>
+
+            <ul class="pricing-features">
+              <li class="pricing-feature-item"><span class="icon">✓</span> <strong>Todo lo del Plan Emprendedor</strong></li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> <strong>Modo Offline inteligente ante cortes</strong></li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Acceso remoto desde cualquier lugar (4G/5G)</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Métricas avanzadas de ventas y gastos</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Roles y permisos (Admin, Cajero, Operario)</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Soporte preferente vía WhatsApp</li>
+            </ul>
+          </div>
+
+          <a href="https://wa.me/56968096021?text=Hola,%20me%20interesa%20el%20Plan%20Profesional%20Premium" target="_blank" class="btn btn-primary" style="width: 100%;">
+            Comenzar con Plan Profesional
+          </a>
+        </div>
+
+        <!-- Plan 3 -->
+        <div class="pricing-card">
+          <div>
+            <h3 class="pricing-plan-name">Plan Cadena / Full</h3>
+            <p class="pricing-plan-desc">Para cadenas, franquicias o lavanderías con múltiples sucursales sin límites.</p>
+            <div class="pricing-price">
+              <span class="price-currency">$</span>
+              <span class="price-amount">59.990</span>
+              <span class="price-period">CLP / mes</span>
+            </div>
+
+            <ul class="pricing-features">
+              <li class="pricing-feature-item"><span class="icon">✓</span> <strong>Todo lo del Plan Profesional (incluye Offline)</strong></li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Usuarios y catálogo ilimitados</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Gestión multi-sucursal en la nube</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Reportes y auditoría de equipo</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Respaldos JSON exportables en todo momento</li>
+              <li class="pricing-feature-item"><span class="icon">✓</span> Soporte prioritario y capacitación</li>
+            </ul>
+          </div>
+
+          <a href="https://wa.me/56968096021?text=Hola,%20tengo%20m%C3%BAltiples%20sedes%20y%20quiero%20el%20Plan%20Cadena%20Full" target="_blank" class="btn btn-secondary" style="width: 100%;">
+            Consultar Cadena / Full
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TESTIMONIAL ==================== -->
+  <section class="case-study">
+    <div class="container">
+      <div class="case-grid">
+        <div>
+          <div class="badge badge-primary case-badge">Caso de Éxito Real</div>
+          <p class="case-quote">
+            "Pasamos de rellenar talonarios con calco a mano y perder minutos buscando prendas a registrar clientes en 30 segundos y avisar por WhatsApp con un solo clic. El local se siente el triple de profesional."
+          </p>
+          <div class="case-author">
+            <div class="case-avatar">⚡</div>
+            <div class="case-author-info">
+              <strong>Lavandería Batery Clean</strong>
+              <span>Calle Villa Alegre 603, Nacimiento &middot; Región del Biobío</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="case-stats-card">
+          <div class="case-stats-grid">
+            <div class="case-stat-box">
+              <strong>-70%</strong>
+              <span>Tiempo de atención en mostrador</span>
+            </div>
+            <div class="case-stat-box">
+              <strong>0</strong>
+              <span>Errores en cobros o folios</span>
+            </div>
+            <div class="case-stat-box">
+              <strong>+95%</strong>
+              <span>Clientes retiran a tiempo gracias al WhatsApp</span>
+            </div>
+            <div class="case-stat-box">
+              <strong>100%</strong>
+              <span>Cierres de caja cuadrados</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FAQ SECTION ==================== -->
+  <section id="faq" class="faq">
+    <div class="container">
+      <div class="section-header">
+        <div class="badge badge-primary">Dudas Frecuentes</div>
+        <h2 class="section-title">Preguntas Frecuentes</h2>
+        <p class="section-desc">Todo lo que necesitas saber antes de implementar el sistema en tu local.</p>
+      </div>
+
+      <div class="faq-wrapper">
+        <div class="faq-item active">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>¿Qué pasa si se corta el internet en mi local?</span>
+            <span class="icon">+</span>
+          </div>
+          <div class="faq-answer">
+            En nuestros planes Premium (Profesional y Cadena / Full), cuentas con <strong>Modo Offline inteligente</strong>: si se cae temporalmente el internet, el sistema resguarda tus operaciones en caché segura y las sincroniza automáticamente con la nube al volver la señal.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>¿Necesito comprar una impresora especial?</span>
+            <span class="icon">+</span>
+          </div>
+          <div class="faq-answer">
+            No. El sistema genera guías y réplicas digitales que se imprimen en cualquier impresora estándar (carta, oficio o ticketera térmica POS de 58mm/80mm) o se pueden enviar directo como PDF por correo o WhatsApp.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>¿Puedo cambiar las prendas y precios por los de mi negocio?</span>
+            <span class="icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Sí, al 100%. El módulo de Catálogo te permite editar los precios en pesos chilenos directamente en la tabla, cambiar nombres, categorías o dar de alta servicios específicos de tu lavandería.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>¿Puedo usarlo desde mi teléfono o tablet?</span>
+            <span class="icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Sí. Al ser una plataforma 100% SaaS en la nube, puedes ingresar desde cualquier teléfono, tablet o computador con navegador web (Chrome o Safari) usando cualquier conexión a internet, sin instalar apps ni configurar redes locales.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>¿Cuánto tardo en empezar a usarlo?</span>
+            <span class="icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Menos de 5 minutos. No requiere instalaciones ni servidores en tu local: creas tu cuenta en la nube, ingresas desde tu navegador y tu negocio ya está digitalizado.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FINAL CTA ==================== -->
+  <section class="final-cta">
+    <div class="container">
+      <h2>Moderniza tu lavandería hoy mismo</h2>
+      <p>Únete a las lavanderías que ya dejaron atrás el papel y atienden el doble de rápido con notificaciones automáticas por WhatsApp.</p>
+      <div class="final-cta-btns">
+        <a href="/app" class="btn btn-primary" style="font-size: 1.1rem; padding: 16px 36px;">
+          <span>🚀</span> Entrar al Sistema
+        </a>
+        <a href="https://wa.me/56968096021?text=Hola,%20quiero%20probar%20el%20software%20de%20lavander%C3%ADa" target="_blank" class="btn btn-accent" style="font-size: 1.1rem; padding: 16px 32px;">
+          <span>💬</span> Solicitar Demo por WhatsApp
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="/" class="brand" style="margin-bottom: 14px;">
+            <img src="assets/lavanderia_oficial.jpeg" alt="Logo Lavandería SaaS" class="brand-logo" style="width: 42px; height: 42px;">
+            <div class="brand-text">
+              <span class="brand-name">Lavandería<span>SaaS</span></span>
+              <span class="brand-tag">Gestión & Control</span>
+            </div>
+          </a>
+          <p>
+            Plataforma integral de gestión de órdenes, folios, clientes y caja para lavanderías, tintorerías y lavasecos comerciales.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="footer-title">Plataforma</h4>
+          <ul class="footer-links">
+            <li><a href="#caracteristicas">Características</a></li>
+            <li><a href="#como-funciona">Flujo de Trabajo</a></li>
+            <li><a href="#offline">Modo Offline (Premium)</a></li>
+            <li><a href="#precios">Planes & Tarifas</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-title">Accesos</h4>
+          <ul class="footer-links">
+            <li><a href="/app">Iniciar Sesión (App)</a></li>
+            <li><a href="/app#reception">Nueva Guía</a></li>
+            <li><a href="/app#orders">Control de Pedidos</a></li>
+            <li><a href="/app#clients">Directorio de Clientes</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-title">Contacto & Soporte</h4>
+          <ul class="footer-links">
+            <li><a href="https://wa.me/56968096021" target="_blank">📱 WhatsApp: +569 68096021</a></li>
+            <li><span>📍 Chile & Latinoamérica</span></li>
+            <li><span>☁️ Plataforma 100% SaaS en la Nube</span></li>
+          </ul>
         </div>
       </div>
 
-      <div class="modal-footer" style="background: #f8fafc;">
-        <button type="button" class="btn btn-secondary" id="btnCancelDeleteModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" id="btnConfirmDeleteAction">🗑️ Sí, Eliminar Definitivamente</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== MODAL DE SERVICIO / PRENDA (CREAR / EDITAR) ==================== -->
-  <div class="modal-overlay" id="serviceFormModal">
-    <div class="modal-container" style="max-width: 520px;">
-      <div class="modal-header">
-        <h3 id="serviceModalTitle">➕ Nueva Prenda o Servicio</h3>
-        <button type="button" class="btn btn-sm btn-outline" id="btnCloseServiceModal" onclick="closeServiceModal()">✕</button>
-      </div>
-
-      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
-        <form id="serviceForm" autocomplete="off" onsubmit="event.preventDefault(); saveServiceModalSubmit();">
-          <input type="hidden" id="modalServiceId" value="">
-
-          <div class="form-group">
-            <label for="modalServiceName">Nombre de la Prenda o Servicio *</label>
-            <input type="text" id="modalServiceName" class="form-control" placeholder="Ej: Plumón 2 Plazas, Alfombra, etc." required>
-          </div>
-
-          <div class="form-group">
-            <label for="modalServiceCategory">Categoría del Servicio *</label>
-            <select id="modalServiceCategory" class="form-control" onchange="checkCustomCategory(this.value)" style="font-weight: 600;">
-              <option value="Lavado General">Lavado General</option>
-              <option value="Prendas Básicas">Prendas Básicas</option>
-              <option value="Hogar y Cama">Hogar y Cama</option>
-              <option value="Abrigos y Casacas">Abrigos y Casacas</option>
-              <option value="Trajes y Formal">Trajes y Formal</option>
-              <option value="Vestuario">Vestuario</option>
-              <option value="Trabajo e Institucional">Trabajo e Institucional</option>
-              <option value="Especiales">Especiales</option>
-              <option value="Otros">Otros</option>
-              <option value="__custom__">➕ Escribir otra categoría personalizada...</option>
-            </select>
-            <input type="text" id="modalCustomCategoryInput" class="form-control" placeholder="Escribe el nombre de la nueva categoría personalizada..." style="display: none; margin-top: 0.5rem;">
-          </div>
-
-          <div class="form-group" style="margin-bottom: 0;">
-            <label for="modalServicePrice">Precio Predeterminado (CLP) *</label>
-            <div style="position: relative;">
-              <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 800; color: #64748b;">$</span>
-              <input type="number" id="modalServicePrice" class="form-control" placeholder="0" min="0" step="100" required style="padding-left: 26px; font-weight: 700; font-size: 1.05rem;">
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="btnCancelServiceModal" onclick="closeServiceModal()">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btnSaveServiceModal" onclick="saveServiceModalSubmit()">💾 Guardar Servicio</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== MODAL DE CONFIRMACIÓN DE ELIMINACIÓN DE SERVICIO ==================== -->
-  <div class="modal-overlay" id="deleteServiceModal">
-    <div class="modal-container" style="max-width: 460px;">
-      <div class="modal-header" style="background: #fef2f2; border-bottom: 1px solid #fee2e2;">
-        <h3 style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem;">
-          <span>⚠️ Eliminar Prenda del Catálogo</span>
-        </h3>
-        <button type="button" class="btn btn-sm btn-outline" id="btnCloseDeleteServiceModal" onclick="closeDeleteServiceModal()">✕</button>
-      </div>
-
-      <div class="modal-body" style="background: #ffffff; padding: 1.5rem; text-align: center;">
-        <div style="width: 54px; height: 54px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 0.75rem;">
-          🧺
+      <div class="footer-bottom">
+        <div>
+          &copy; 2026 Lavandería SaaS. Todos los derechos reservados.
         </div>
-        <h4 id="deleteServiceConfirmTitle" style="font-size: 1.15rem; color: #0f172a; margin-bottom: 0.4rem;">¿Eliminar prenda?</h4>
-        <p id="deleteServiceConfirmMessage" style="color: #475569; font-size: 0.95rem; line-height: 1.5;">
-          Esta prenda ya no aparecerá disponible al crear nuevas guías de recepción.
-        </p>
-      </div>
-
-      <div class="modal-footer" style="background: #f8fafc;">
-        <button type="button" class="btn btn-secondary" id="btnCancelDeleteServiceModal" onclick="closeDeleteServiceModal()">Cancelar</button>
-        <button type="button" class="btn btn-danger" id="btnConfirmDeleteServiceAction" onclick="executeDeleteService()">🗑️ Sí, Eliminar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== MODAL DE GASTO (CREAR / EDITAR) ==================== -->
-  <div class="modal-overlay" id="expenseFormModal">
-    <div class="modal-container" style="max-width: 520px;">
-      <div class="modal-header">
-        <h3 id="expenseModalTitle">➕ Registrar Nuevo Gasto</h3>
-        <button type="button" class="btn btn-sm btn-outline" id="btnCloseExpenseModal" onclick="closeExpenseModal()">✕</button>
-      </div>
-
-      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
-        <form id="expenseForm" autocomplete="off" onsubmit="event.preventDefault(); saveExpenseModalSubmit();">
-          <input type="hidden" id="modalExpenseId" value="">
-
-          <div class="form-group">
-            <label for="modalExpenseProductName">Nombre del Producto o Insumo *</label>
-            <input type="text" id="modalExpenseProductName" class="form-control" placeholder="Ej: Detergente Industrial 20L, Bolsas 50x70..." required>
-          </div>
-
-          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
-            <div class="form-group">
-              <label for="modalExpenseType">Tipo de Producto *</label>
-              <select id="modalExpenseType" class="form-control" style="font-weight: 600;" required>
-                <option value="Detergentes y Químicos">🧼 Detergentes y Químicos</option>
-                <option value="Suavizantes">🌸 Suavizantes y Aromas</option>
-                <option value="Bolsas y Empaques">🛍️ Bolsas y Empaques</option>
-                <option value="Insumos de Limpieza">🧹 Insumos de Limpieza</option>
-                <option value="Mantenimiento de Máquinas">🔧 Mantenimiento de Máquinas</option>
-                <option value="Servicios Básicos">⚡ Servicios Básicos (Luz/Agua/Gas)</option>
-                <option value="Otros">📦 Otros</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="modalExpensePrice">Precio / Monto (CLP) *</label>
-              <div style="position: relative;">
-                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 800; color: #64748b;">$</span>
-                <input type="number" id="modalExpensePrice" class="form-control" placeholder="0" min="0" step="100" required style="padding-left: 26px; font-weight: 700;">
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="modalExpenseDate">Fecha de Compra *</label>
-            <input type="date" id="modalExpenseDate" class="form-control" required>
-          </div>
-
-          <div class="form-group" style="margin-bottom: 0;">
-            <label for="modalExpenseNotes">Notas / Proveedor / Detalle (Opcional)</label>
-            <textarea id="modalExpenseNotes" class="form-control" rows="2" placeholder="Ej: Comprado en Distribuidora Central, Factura Nº 1234..."></textarea>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="btnCancelExpenseModal" onclick="closeExpenseModal()">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btnSaveExpenseModal" onclick="saveExpenseModalSubmit()">💾 Guardar Gasto</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== MODAL DE CONFIRMACIÓN DE ELIMINACIÓN DE GASTO ==================== -->
-  <div class="modal-overlay" id="deleteExpenseModal">
-    <div class="modal-container" style="max-width: 460px;">
-      <div class="modal-header" style="background: #fef2f2; border-bottom: 1px solid #fee2e2;">
-        <h3 style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem;">
-          <span>⚠️ Eliminar Registro de Gasto</span>
-        </h3>
-        <button type="button" class="btn btn-sm btn-outline" onclick="closeDeleteExpenseModal()">✕</button>
-      </div>
-
-      <div class="modal-body" style="background: #ffffff; padding: 1.5rem; text-align: center;">
-        <div style="width: 54px; height: 54px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 0.75rem;">
-          🗑️
+        <div>
+          Plataforma SaaS en la nube con Modo Offline para planes Premium.
         </div>
-        <h4 id="deleteExpenseConfirmTitle" style="font-size: 1.15rem; color: #0f172a; margin-bottom: 0.4rem;">¿Eliminar gasto?</h4>
-        <p id="deleteExpenseConfirmMessage" style="color: #475569; font-size: 0.95rem; line-height: 1.5;">
-          Esta acción removerá el gasto del registro permanentemente.
-        </p>
-      </div>
-
-      <div class="modal-footer" style="background: #f8fafc;">
-        <button type="button" class="btn btn-secondary" onclick="closeDeleteExpenseModal()">Cancelar</button>
-        <button type="button" class="btn btn-danger" id="btnConfirmDeleteExpenseAction" onclick="executeDeleteExpense()">🗑️ Sí, Eliminar</button>
       </div>
     </div>
-  </div>
+  </footer>
 
-  <!-- ==================== MODAL DE GESTIÓN DE ENTREGA, SALIDA Y PAGO ==================== -->
-  <div class="modal-overlay" id="manageOrderModal">
-    <div class="modal-container" style="max-width: 540px;">
-      <div class="modal-header">
-        <h3 id="manageOrderModalTitle">⚙️ Entrega, Salida y Pago</h3>
-        <button type="button" class="btn btn-sm btn-outline" onclick="closeManageOrderModal()">✕</button>
-      </div>
-
-      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
-        <form id="manageOrderForm" autocomplete="off" onsubmit="event.preventDefault(); saveManageOrderSubmit();">
-          <input type="hidden" id="manageOrderId" value="">
-
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.15rem; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <span style="font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Cliente / Orden</span>
-              <div style="font-weight: 800; color: #071933; font-size: 1rem;" id="manageOrderClientLabel">-</div>
-            </div>
-            <div style="text-align: right;">
-              <span style="font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Total</span>
-              <div style="font-weight: 900; color: #0077e6; font-size: 1.15rem;" id="manageOrderTotalLabel">$0</div>
-            </div>
-          </div>
-
-          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1rem;">
-            <div class="form-group">
-              <label for="manageOrderStatus">Estado en Taller</label>
-              <select id="manageOrderStatus" class="form-control" style="font-weight: 700;" onchange="onManageOrderStatusChange(this.value)">
-                <option value="RECIBIDO">📥 Recibido</option>
-                <option value="EN_LAVADO">🧼 En Lavado</option>
-                <option value="LISTO">✅ Listo p/Retiro</option>
-                <option value="ENTREGADO">📦 Entregado (Sale del local)</option>
-                <option value="CANCELADO">❌ Cancelado</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="manageOrderDeliveryDate">📅 Fecha Entrega Estimada</label>
-              <input type="date" id="manageOrderDeliveryDate" class="form-control">
-            </div>
-          </div>
-
-          <div class="form-group" style="margin-bottom: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.85rem; border-radius: 8px;">
-            <label for="manageOrderExitDate" style="color: #166534;">🚪 Día que Sale del Local (Salida Real)</label>
-            <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem;">
-              <input type="date" id="manageOrderExitDate" class="form-control">
-              <button type="button" class="btn btn-sm btn-success" onclick="setManageOrderExitToday()" style="white-space: nowrap; height: 38px;">
-                📅 Hoy
-              </button>
-              <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('manageOrderExitDate').value = ''" style="white-space: nowrap; height: 38px;" title="Aún en el local">
-                Limpiar
-              </button>
-            </div>
-            <small style="color: #15803d; display: block; margin-top: 0.35rem;">
-              Se registra automáticamente al marcar como <strong>Entregado</strong> o puedes fijar el día exacto aquí.
-            </small>
-          </div>
-
-          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label for="manageOrderPaymentStatus">Estado de Pago</label>
-              <select id="manageOrderPaymentStatus" class="form-control" style="font-weight: 700;">
-                <option value="PENDIENTE">⏳ Pendiente</option>
-                <option value="PAGADO">✅ Pagado</option>
-              </select>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 0;">
-              <label for="manageOrderPaymentMethod">Medio de Pago</label>
-              <select id="manageOrderPaymentMethod" class="form-control" style="font-weight: 700;">
-                <option value="EFECTIVO">💵 Efectivo</option>
-                <option value="DEBITO">💳 Débito</option>
-                <option value="CREDITO">💳 Crédito</option>
-                <option value="TRANSFERENCIA">🏦 Transferencia</option>
-              </select>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeManageOrderModal()">Cancelar</button>
-        <button type="button" class="btn btn-primary" onclick="saveManageOrderSubmit()">💾 Guardar Cambios</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast Container -->
-  <div class="toast-container" id="toastContainer"></div>
-
-  <script src="/js/app.js"></script>
+  <script>
+    function toggleFaq(el) {
+      const parent = el.parentElement;
+      const wasActive = parent.classList.contains('active');
+      document.querySelectorAll('.faq-item').forEach(item => item.classList.remove('active'));
+      if (!wasActive) {
+        parent.classList.add('active');
+      }
+    }
+  </script>
 </body>
 </html>

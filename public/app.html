@@ -1,0 +1,2607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lavandería SaaS — Plataforma de Gestión</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="icon" href="/assets/lavanderia_oficial.jpeg" type="image/jpeg">
+</head>
+<body class="auth-checking">
+
+  <!-- ==================== PANTALLA DE INICIO DE SESIÓN (SAAS) ==================== -->
+  <div id="authOverlay" class="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-card-header">
+        <img src="/assets/lavanderia_oficial.jpeg" alt="Logo Lavandería SaaS" class="auth-logo">
+        <div>
+          <h1>LAVANDERÍA <span class="clean-accent">SaaS</span></h1>
+          <p>⚡ Plataforma Multi-Lavandería ⚡</p>
+        </div>
+      </div>
+
+      <form id="loginForm" class="auth-form" onsubmit="event.preventDefault(); submitLoginForm();">
+        <div class="form-group">
+          <label for="loginUsername">👤 Usuario</label>
+          <input type="text" id="loginUsername" class="form-control" placeholder="Ej: superadmin, admin, cajero..." autocomplete="username" required>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">🔑 Contraseña</label>
+          <input type="password" id="loginPassword" class="form-control" placeholder="Ingresa tu contraseña..." autocomplete="current-password" required>
+        </div>
+
+        <div id="authErrorBox" class="auth-error-box" style="display: none;"></div>
+
+        <button type="submit" id="btnLoginSubmit" class="btn btn-primary auth-submit-btn">
+          🚀 Ingresar al Sistema
+        </button>
+      </form>
+
+      <div class="auth-demo-box">
+        <span class="auth-demo-title">Accesos rápidos de prueba:</span>
+        <div class="auth-demo-pills">
+          <button type="button" class="demo-pill demo-super" onclick="fillDemoCredentials('superadmin', 'super123')">
+            👑 Super Usuario
+          </button>
+          <button type="button" class="demo-pill demo-admin" onclick="fillDemoCredentials('admin', 'admin123')">
+            🛠️ Admin Local
+          </button>
+          <button type="button" class="demo-pill demo-cashier" onclick="fillDemoCredentials('cajero', 'cajero123')">
+            💵 Cajero
+          </button>
+        </div>
+        <div style="text-align: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+          <a href="/" style="color: #38bdf8; text-decoration: none; font-size: 0.88rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+            &larr; 🌐 Volver a la Página Oficial &amp; Planes
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MENÚ HAMBURGUESA (DRAWER LATERAL) ==================== -->
+  <div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
+  <aside id="appDrawer" class="app-drawer" aria-label="Menú principal">
+    <div class="drawer-header">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <img src="/assets/lavanderia_oficial.jpeg" alt="Logo" class="drawer-logo">
+        <div>
+          <strong id="drawerBrandName">LAVANDERÍA SaaS</strong>
+          <small id="drawerActiveLaundryLabel">Lavandería Activa</small>
+        </div>
+      </div>
+      <button type="button" class="drawer-close-btn" onclick="closeDrawer()" aria-label="Cerrar menú">✕</button>
+    </div>
+
+    <div class="drawer-user-card">
+      <div class="drawer-user-avatar" id="drawerUserAvatar">U</div>
+      <div class="drawer-user-info">
+        <div class="drawer-user-name" id="drawerUserFullName">Usuario</div>
+        <div class="drawer-user-meta">
+          <span id="drawerUserUsername">@user</span> ·
+          <span class="role-badge-pill" id="drawerUserRoleBadge">Rol</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="drawer-nav-list">
+      <!-- Tenant Links -->
+      <button type="button" class="drawer-link active" data-target="nueva-guia" data-perm="view_reception" onclick="navigateToTab('nueva-guia')">
+        <span>📝</span><span>Recepción (Inicio)</span>
+      </button>
+      <button type="button" class="drawer-link" data-target="pedidos-list" data-perm="view_orders" onclick="navigateToTab('pedidos-list')">
+        <span>🧺</span><span>Control de Pedidos</span>
+        <span class="nav-badge drawer-badge" id="drawerPendingBadge" style="display:none;">0</span>
+      </button>
+      <button type="button" class="drawer-link" data-target="clientes-list" data-perm="view_clients" onclick="navigateToTab('clientes-list')">
+        <span>👥</span><span>Clientes</span>
+      </button>
+      <button type="button" class="drawer-link" data-target="precios-catalog" data-perm="view_catalog" onclick="navigateToTab('precios-catalog')">
+        <span>🏷️</span><span>Catálogo & Precios</span>
+      </button>
+      <button type="button" class="drawer-link" data-target="gastos-list" data-perm="view_expenses" onclick="navigateToTab('gastos-list')">
+        <span>💸</span><span>Gastos & Insumos</span>
+      </button>
+      <button type="button" class="drawer-link" data-target="reportes-ventas" data-perm="view_reports" onclick="navigateToTab('reportes-ventas')">
+        <span>📊</span><span>Reportes</span>
+      </button>
+      <button type="button" class="drawer-link" data-target="usuarios-roles" data-perm="manage_users|manage_roles" onclick="navigateToTab('usuarios-roles')">
+        <span>🔐</span><span>Usuarios & Roles</span>
+      </button>
+
+      <!-- SuperAdmin SaaS Links (Sin acceso a datos privados) -->
+      <button type="button" class="drawer-link" data-target="saas-dashboard" data-perm="__superadmin__" onclick="navigateToTab('saas-dashboard')">
+        <span>📊</span><span>Estadísticas SaaS</span>
+      </button>
+      <button type="button" class="drawer-link" data-target="saas-businesses" data-perm="__superadmin__" onclick="navigateToTab('saas-businesses')">
+        <span>🏢</span><span>Gestionar Lavanderías</span>
+      </button>
+      <button type="button" class="drawer-link" data-target="saas-platform" data-perm="__superadmin__" onclick="navigateToTab('saas-platform')">
+        <span>✨</span><span>Gestionar Plataforma</span>
+      </button>
+
+      <!-- Soporte (SuperAdmin y Admin de Lavandería) -->
+      <button type="button" class="drawer-link" data-target="soporte" data-perm="__superadmin__|manage_users" onclick="navigateToTab('soporte')">
+        <span>🎧</span><span>Soporte SaaS</span>
+        <span class="nav-badge drawer-badge" id="drawerSupportBadge" style="display:none;">0</span>
+      </button>
+
+      <button type="button" class="drawer-link" data-target="ajustes" data-perm="view_settings" onclick="navigateToTab('ajustes')">
+        <span>⚙️</span><span>Ajustes</span>
+      </button>
+
+      <a href="/" class="drawer-link" style="text-decoration: none; color: inherit;">
+        <span>🌐</span><span>Ver Landing Oficial</span>
+      </a>
+    </nav>
+
+    <div class="drawer-footer">
+      <button type="button" class="btn btn-danger" style="width: 100%;" onclick="logoutUser()">
+        🚪 Cerrar Sesión
+      </button>
+    </div>
+  </aside>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <button type="button" id="btnHamburgerMenu" class="hamburger-btn" onclick="toggleDrawer()" aria-label="Abrir menú de navegación" title="Menú de Navegación">
+          <span class="hamburger-lines">
+            <span></span><span></span><span></span>
+          </span>
+          <span class="hamburger-text">Menú</span>
+        </button>
+
+        <img src="/assets/lavanderia_oficial.jpeg" alt="Logo Lavandería" class="brand-logo-img">
+        <div class="brand-titles">
+          <h1 id="headerBrandName">LAVANDERÍA <span class="clean-accent">SaaS</span></h1>
+          <p id="headerBrandSlogan">⚡ Gestión Multi-Lavandería ⚡</p>
+        </div>
+      </div>
+
+      <div class="header-meta">
+        <div class="header-meta-item header-contact-info">
+          <span id="headerLaundryAddress">📍 Calle Villa Alegre 603, Nacimiento</span>
+        </div>
+        <div class="header-meta-item header-contact-info">
+          <span id="headerLaundryPhone">📞 +569 68096021</span>
+        </div>
+
+        <div class="header-plan-badge" id="headerPlanBadge" style="display: none;">
+          <span id="headerPlanBadgeText">Plan</span>
+        </div>
+
+        <div class="header-user-chip" id="headerUserChip" title="Usuario conectado">
+          <span class="user-dot"></span>
+          <span id="headerUserNameLabel">Usuario</span>
+          <span class="header-role-tag" id="headerUserRoleLabel">Rol</span>
+        </div>
+
+        <button type="button" id="btnLogoutHeader" class="btn-logout-header" onclick="logoutUser()" title="Cerrar sesión">
+          🚪 Salir
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Navigation Bar (Quick Desktop Tabs - Collapses into Hamburger Menu on mobile/tablet) -->
+  <nav class="app-nav">
+    <div class="nav-container">
+      <button type="button" class="nav-tab active" data-target="nueva-guia" data-perm="view_reception">
+        📝 Recepción
+      </button>
+      <button type="button" class="nav-tab" data-target="pedidos-list" data-perm="view_orders">
+        🧺 Control de Pedidos <span class="nav-badge" id="pendingNavBadge" style="display:none;">0</span>
+      </button>
+      <button type="button" class="nav-tab" data-target="clientes-list" data-perm="view_clients">
+        👥 Clientes
+      </button>
+      <button type="button" class="nav-tab" data-target="precios-catalog" data-perm="view_catalog">
+        🏷️ Catálogo & Precios
+      </button>
+      <button type="button" class="nav-tab" data-target="gastos-list" data-perm="view_expenses">
+        💸 Gastos
+      </button>
+      <button type="button" class="nav-tab" data-target="reportes-ventas" data-perm="view_reports">
+        📊 Reportes
+      </button>
+      <button type="button" class="nav-tab" data-target="usuarios-roles" data-perm="manage_users|manage_roles">
+        🔐 Usuarios & Roles
+      </button>
+
+      <button type="button" class="nav-tab" data-target="saas-dashboard" data-perm="__superadmin__">
+        📊 Estadísticas SaaS
+      </button>
+      <button type="button" class="nav-tab" data-target="saas-businesses" data-perm="__superadmin__">
+        🏢 Gestionar Lavanderías
+      </button>
+      <button type="button" class="nav-tab" data-target="saas-platform" data-perm="__superadmin__">
+        ✨ Gestionar Plataforma
+      </button>
+      <button type="button" class="nav-tab" data-target="soporte" data-perm="__superadmin__|manage_users">
+        🎧 Soporte <span class="nav-badge" id="supportNavBadge" style="display:none;">0</span>
+      </button>
+
+      <button type="button" class="nav-tab" data-target="ajustes" data-perm="view_settings">
+        ⚙️ Ajustes
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="main-content">
+
+    <!-- ==================== TAB 1: NUEVA GUÍA DE RECEPCIÓN (HOME) ==================== -->
+    <section id="nueva-guia" class="tab-pane active">
+      <!-- KPI Quick Stats (Solo visible en Home / Recepción) -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #e0f2fe; color: #0284c7;">📥</div>
+          <div class="stat-info">
+            <h4>Pedidos Hoy</h4>
+            <div class="stat-value" id="statTodayOrders">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #dcfce7; color: #16a34a;">💰</div>
+          <div class="stat-info">
+            <h4>Ventas Hoy</h4>
+            <div class="stat-value" id="statTodayRevenue">$0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #fef3c7; color: #d97706;">🧼</div>
+          <div class="stat-info">
+            <h4>Pendientes Lavado</h4>
+            <div class="stat-value" id="statPendingOrders">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #ede9fe; color: #7c3aed;">👥</div>
+          <div class="stat-info">
+            <h4>Clientes Registrados</h4>
+            <div class="stat-value" id="statTotalClients">0</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="order-form-container">
+        
+        <!-- Left Column: Form Fields & Services Selection -->
+        <div class="form-main-content">
+
+          <!-- Client & Metadata Card -->
+          <div class="form-card">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <img src="/assets/logo.jpeg" alt="Logo" style="height: 38px; width: auto; max-width: 55px; object-fit: contain; border-radius: 6px; background: #ffffff; padding: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0;">
+                  <span>📋 Guía de Recepción (No es Boleta)</span>
+                </h3>
+              </div>
+              <div class="folio-badge-display" id="folioDisplay">
+                FOLIO Nº 000001
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="reception-form-grid">
+                <div class="form-group" style="position: relative;">
+                  <label for="clientName">Nombre del Cliente *</label>
+                  <input type="text" id="clientName" class="form-control" placeholder="Escribe el nombre del cliente..." autocomplete="off">
+                  <div id="clientSuggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 8px 16px rgba(0,0,0,0.15); z-index:50; max-height:220px; overflow-y:auto;"></div>
+                </div>
+
+                <div class="form-group">
+                  <label for="clientRut">RUT (sin puntos)</label>
+                  <input type="text" id="clientRut" class="form-control" placeholder="Ej: 12345678-9" autocomplete="off" style="font-family: monospace; font-weight: 700;">
+                </div>
+
+                <div class="form-group">
+                  <label for="clientPhone">Teléfono / Fono (WhatsApp)</label>
+                  <input type="tel" id="clientPhone" class="form-control" placeholder="+569 12345678">
+                </div>
+
+                <div class="form-group">
+                  <label for="clientAddress">Dirección</label>
+                  <input type="text" id="clientAddress" class="form-control" placeholder="Ej: Calle Villa Alegre 123, Nacimiento">
+                </div>
+
+                <div class="form-group">
+                  <label for="orderReceptionDate">Fecha de Recepción</label>
+                  <input type="date" id="orderReceptionDate" class="form-control">
+                </div>
+
+                <div class="form-group">
+                  <label for="orderDeliveryDate">Fecha de Entrega Estimada</label>
+                  <input type="date" id="orderDeliveryDate" class="form-control">
+                </div>
+
+                <div class="form-group">
+                  <label>Tipo de Documento</label>
+                  <div class="compact-segmented-control">
+                    <label class="compact-segment-option">
+                      <input type="radio" name="docType" value="BOLETA" checked>
+                      <span>Boleta</span>
+                    </label>
+                    <label class="compact-segment-option">
+                      <input type="radio" name="docType" value="FACTURA">
+                      <span>Factura</span>
+                    </label>
+                    <label class="compact-segment-option">
+                      <input type="radio" name="docType" value="NINGUNO">
+                      <span>Ninguno</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Estado de Pago</label>
+                  <div class="compact-segmented-control">
+                    <label class="compact-segment-option option-pending">
+                      <input type="radio" name="paymentStatus" value="PENDIENTE" checked>
+                      <span>⏳ Pendiente</span>
+                    </label>
+                    <label class="compact-segment-option option-paid">
+                      <input type="radio" name="paymentStatus" value="PAGADO">
+                      <span>💳 Pagado</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group span-2">
+                  <label>Medio de Pago</label>
+                  <div class="compact-segmented-control">
+                    <label class="compact-segment-option">
+                      <input type="radio" name="paymentMethod" value="EFECTIVO" checked>
+                      <span>💵 Efectivo</span>
+                    </label>
+                    <label class="compact-segment-option">
+                      <input type="radio" name="paymentMethod" value="DEBITO">
+                      <span>💳 Débito</span>
+                    </label>
+                    <label class="compact-segment-option">
+                      <input type="radio" name="paymentMethod" value="CREDITO">
+                      <span>💳 Crédito</span>
+                    </label>
+                    <label class="compact-segment-option">
+                      <input type="radio" name="paymentMethod" value="TRANSFERENCIA">
+                      <span>🏦 Transferencia</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Services Catalog Selection Card (Organized in 2 columns like the flyer) -->
+          <div class="form-card">
+            <div class="card-header">
+              <h3>
+                <span>🧺 Prendas y Servicios del Afiche</span>
+              </h3>
+              <button type="button" class="btn btn-sm btn-outline" id="btnAddCustomService">
+                ➕ Otra prenda personalizada
+              </button>
+            </div>
+
+            <div class="card-body">
+              <!-- Services Search Bar -->
+              <div class="services-catalog-header">
+                <div class="search-input-wrapper">
+                  <input type="text" id="servicesSearch" class="form-control" placeholder="🔍 Filtrar prenda (ej: plumón, casaca, terno, camisa...)">
+                </div>
+              </div>
+
+              <!-- Two Columns Grid Matching Physical Flyer -->
+              <div class="catalog-columns-wrapper">
+                <div class="catalog-col" id="servicesCol1">
+                  <!-- Injected via JS -->
+                </div>
+                <div class="catalog-col" id="servicesCol2">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Special Services & Observations -->
+          <div class="form-card">
+            <div class="card-header">
+              <h3>
+                <span>⭐ Servicio Especial & Observaciones</span>
+              </h3>
+            </div>
+            <div class="card-body">
+              <!-- Special Services Bar -->
+              <div class="special-services-bar">
+                <div class="special-services-title">
+                  ★ SERVICIOS ESPECIALES
+                </div>
+                <div class="special-checkboxes-grid">
+                  <label class="special-checkbox-item">
+                    <input type="checkbox" value="Blanqueador"> Blanqueador
+                  </label>
+                  <label class="special-checkbox-item">
+                    <input type="checkbox" value="Desmanchado"> Desmanchado
+                  </label>
+                  <label class="special-checkbox-item">
+                    <input type="checkbox" value="Colgador"> Colgador
+                  </label>
+                  <label class="special-checkbox-item">
+                    <input type="checkbox" value="Bolsa"> Bolsa
+                  </label>
+                  <label class="special-checkbox-item">
+                    <input type="checkbox" value="Ropa ignífuga"> Ropa ignífuga
+                  </label>
+                </div>
+              </div>
+
+              <!-- Observations Textarea -->
+              <div class="form-group" style="margin-top: 1rem;">
+                <label for="orderObservations">✏️ Observaciones de las prendas (roturas, manchas previas, etc.):</label>
+                <textarea id="orderObservations" class="form-control" rows="3" placeholder="Detalles específicos sobre el estado de la ropa entregada..."></textarea>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Sticky Summary & Action Buttons -->
+        <aside class="order-summary-sidebar">
+          <div class="summary-card">
+            <div class="summary-header">
+              <div style="display: flex; align-items: center; gap: 0.55rem;">
+                <img src="/assets/logo.jpeg" alt="Logo" style="height: 32px; width: auto; max-width: 46px; object-fit: contain; border-radius: 4px; background: #ffffff; padding: 1px;">
+                <h3 style="margin: 0;">Resumen de la Guía</h3>
+              </div>
+              <small id="summaryItemsCount" style="color: var(--cyan-glow); font-weight: bold;">0 prendas</small>
+            </div>
+
+            <div class="summary-total-banner">
+              <div class="total-label">TOTAL GUÍA DE RECEPCIÓN</div>
+              <div class="total-amount" id="summaryTotalAmount">$0</div>
+            </div>
+
+            <div class="summary-items-list" id="summaryItemsList">
+              <!-- Dynamic item list -->
+              <div style="text-align: center; color: #94a3b8; padding: 1.5rem 0; font-size: 0.9rem;">
+                ⚡ Selecciona las prendas del afiche para armar la guía.
+              </div>
+            </div>
+
+            <div class="summary-actions">
+              <button type="button" class="btn btn-success" id="btnSaveAndPrintOrder" style="font-size: 1.05rem;">
+                🖨️ Guardar e Imprimir
+              </button>
+              <button type="button" class="btn btn-primary" id="btnSaveOrder">
+                💾 Guardar Pedido
+              </button>
+              <button type="button" class="btn btn-secondary" id="btnResetForm">
+                🔄 Limpiar Formulario
+              </button>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: LISTADO & CONTROL DE PEDIDOS ==================== -->
+    <section id="pedidos-list" class="tab-pane">
+      <!-- Upcoming / Overdue Deliveries Alert Banner (Solo en Control de Pedidos) -->
+      <section id="upcomingDeliveriesBanner" class="upcoming-alerts-banner" style="display: none;">
+        <!-- Populated dynamically via JS from /api/stats -->
+      </section>
+
+      <div class="form-card">
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered">
+            <h2>
+              <span>🧺 Control de Pedidos & Estados</span>
+            </h2>
+          </div>
+          <div class="card-toolbar-fullwidth">
+            <input type="text" id="orderSearchInput" class="form-control" placeholder="🔍 Buscar folio, cliente, RUT, fono..." oninput="onOrdersFilterChange()">
+            <select id="orderStatusFilter" class="form-control" onchange="onOrdersFilterChange()">
+              <option value="TODOS">Todos los Estados</option>
+              <option value="PROXIMAS">⏰ Entregas Próximas / Atrasadas</option>
+              <option value="RECIBIDO">📥 Recibido</option>
+              <option value="EN_LAVADO">🧼 En Lavado</option>
+              <option value="LISTO">✅ Listo p/Retiro</option>
+              <option value="ENTREGADO">📦 Entregado</option>
+              <option value="CANCELADO">❌ Cancelado</option>
+            </select>
+            <select id="orderPaymentMethodFilter" class="form-control" onchange="onOrdersFilterChange()">
+              <option value="TODOS">Todos Medios Pago</option>
+              <option value="EFECTIVO">💵 Efectivo</option>
+              <option value="DEBITO">💳 Débito</option>
+              <option value="CREDITO">💳 Crédito</option>
+              <option value="TRANSFERENCIA">🏦 Transferencia</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Bar: Limit & Pagination Summary -->
+        <div class="grid-limit-bar">
+          <div class="grid-limit-controls">
+            <label for="orderLimitSelect">Mostrar:</label>
+            <select id="orderLimitSelect" class="form-control limit-select" onchange="onOrdersLimitSelectChange(this.value)">
+              <option value="15" selected>15 registros</option>
+              <option value="30">30 registros</option>
+              <option value="50">50 registros</option>
+              <option value="100">100 registros</option>
+              <option value="ALL">Todos</option>
+              <option value="CUSTOM">Cantidad personalizada...</option>
+            </select>
+            <input type="number" id="orderCustomLimitInput" class="form-control limit-custom-input" value="15" min="1" max="2000" style="display:none;" placeholder="Ej: 20" onchange="onOrdersFilterChange()" title="Escribe la cantidad de registros por página">
+          </div>
+          <div class="grid-pagination-info" id="ordersPaginationInfo">
+            Mostrando 0 de 0 pedidos
+          </div>
+        </div>
+
+        <div class="card-body" style="padding: 0;">
+          <div class="orders-table-wrapper">
+            <table class="data-table orders-table-compact">
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Cliente</th>
+                  <th>Fechas (Recep. / Entrega / Salida)</th>
+                  <th>Estado</th>
+                  <th>Pago / Medio</th>
+                  <th>Prendas</th>
+                  <th>Total</th>
+                  <th style="text-align: center;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Footer -->
+          <div class="grid-pagination-footer" id="ordersPaginationFooter" style="display: none;">
+            <button type="button" class="btn btn-sm btn-outline" id="btnOrdersPrevPage" onclick="changeOrdersPage(-1)">◀ Anterior</button>
+            <span class="pagination-page-label" id="ordersPageLabel">Página 1 de 1</span>
+            <button type="button" class="btn btn-sm btn-outline" id="btnOrdersNextPage" onclick="changeOrdersPage(1)">Siguiente ▶</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: CLIENTES ==================== -->
+    <section id="clientes-list" class="tab-pane">
+      <div class="form-card">
+        <div class="card-header">
+          <h3>
+            <span>👥 Directorio de Clientes</span>
+          </h3>
+          <div class="card-toolbar">
+            <input type="text" id="clientSearchInput" class="form-control" placeholder="🔍 Buscar nombre, fono, correo, RUT..." oninput="loadClients()">
+            <button type="button" class="btn btn-outline" id="btnToggleClientsGrid" title="Mostrar u Ocultar la Grilla de Clientes">
+              👁️ <span id="toggleGridBtnText">Ocultar Grilla</span>
+            </button>
+            <button type="button" class="btn btn-success" id="btnOpenNewClientModal" data-perm="manage_clients">
+              ➕ Nuevo Cliente
+            </button>
+          </div>
+        </div>
+
+        <!-- Toolbar para personalizar columnas visibles de la grilla -->
+        <div class="grid-columns-toolbar" id="gridColumnsToolbar">
+          <div class="grid-columns-pills">
+            <span class="grid-toolbar-label">👁️ Columnas:</span>
+            <label class="column-toggle-pill">
+              <input type="checkbox" id="colToggleEmail" checked onchange="toggleClientColumn('col-email', this.checked)"> Correo
+            </label>
+            <label class="column-toggle-pill">
+              <input type="checkbox" id="colToggleRut" checked onchange="toggleClientColumn('col-rut', this.checked)"> RUT
+            </label>
+            <label class="column-toggle-pill">
+              <input type="checkbox" id="colToggleOrders" checked onchange="toggleClientColumn('col-orders', this.checked)"> Pedidos
+            </label>
+            <label class="column-toggle-pill optional-col">
+              <input type="checkbox" id="colToggleAddress" onchange="toggleClientColumn('col-address', this.checked)"> Dirección
+            </label>
+            <label class="column-toggle-pill optional-col">
+              <input type="checkbox" id="colToggleDate" onchange="toggleClientColumn('col-date', this.checked)"> Fecha Integración
+            </label>
+          </div>
+          <div class="grid-toolbar-hint">
+            Dirección y fecha ocultas por defecto
+          </div>
+        </div>
+
+        <div class="card-body" id="clientsGridContainer" style="padding: 0;">
+          <div class="orders-table-wrapper">
+            <table class="data-table" id="clientsTable">
+              <thead>
+                <tr>
+                  <th class="col-name">Cliente</th>
+                  <th class="col-phone">Teléfono (WhatsApp)</th>
+                  <th class="col-email">Correo Electrónico</th>
+                  <th class="col-rut">RUT</th>
+                  <th class="col-orders">Historial Pedidos</th>
+                  <th class="col-address col-hidden">Dirección</th>
+                  <th class="col-date col-hidden">Fecha Integración</th>
+                  <th style="text-align: center;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="clientsTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Banner cuando la grilla está oculta -->
+        <div id="clientsGridHiddenNotice" style="display: none; padding: 3rem 1.5rem; text-align: center; color: #64748b; background: #f8fafc;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">👁️‍🗨️</div>
+          <h4 style="color: #334155; margin-bottom: 0.35rem;">La grilla de clientes está oculta</h4>
+          <p style="font-size: 0.9rem; margin-bottom: 1rem;">Haz clic en el botón para volver a visualizar la tabla de clientes.</p>
+          <button type="button" class="btn btn-outline btn-sm" onclick="toggleClientsGridVisibility(true)">
+            👁️ Mostrar Grilla de Clientes
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: CATÁLOGO & PRECIOS ==================== -->
+    <section id="precios-catalog" class="tab-pane">
+      <div class="form-card">
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered">
+            <h2>
+              <span>🏷️ Catálogo de Prendas y Servicios</span>
+            </h2>
+          </div>
+          <div class="card-toolbar-fullwidth">
+            <input type="text" id="catalogSearchInput" class="form-control" placeholder="🔍 Filtrar prenda..." oninput="filterPricesCatalog()">
+            <select id="catalogCategoryFilter" class="form-control" onchange="filterPricesCatalog()">
+              <option value="TODAS">📁 Todas las categorías</option>
+              <option value="Lavado General">Lavado General</option>
+              <option value="Prendas Básicas">Prendas Básicas</option>
+              <option value="Hogar y Cama">Hogar y Cama</option>
+              <option value="Abrigos y Casacas">Abrigos y Casacas</option>
+              <option value="Trajes y Formal">Trajes y Formal</option>
+              <option value="Vestuario">Vestuario</option>
+              <option value="Trabajo e Institucional">Trabajo e Institucional</option>
+              <option value="Especiales">Especiales</option>
+              <option value="Otros">Otros</option>
+            </select>
+            <button type="button" class="btn btn-success" id="btnOpenNewServiceModal" data-perm="manage_catalog" onclick="openServiceModal()">
+              ➕ Agregar Servicio
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 1rem; color: #64748b; font-size: 0.9rem;">
+            Aquí puedes agregar nuevas prendas, cambiar categorías o editar los nombres y precios. Todos los cambios se reflejan automáticamente en la toma de pedidos.
+          </p>
+          <div class="orders-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="min-width: 200px;">Prenda / Servicio</th>
+                  <th style="min-width: 170px;">Categoría</th>
+                  <th style="width: 160px;">Precio (CLP)</th>
+                  <th style="text-align: center; width: 220px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="pricesTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: GASTOS E INSUMOS ==================== -->
+    <section id="gastos-list" class="tab-pane">
+      <div class="form-card">
+        <!-- Centered Header with 1-Line Fullwidth Toolbar -->
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered">
+            <h2>
+              <span>💸 Control de Gastos & Insumos</span>
+            </h2>
+          </div>
+          <div class="card-toolbar-fullwidth">
+            <input type="text" id="expenseSearchInput" class="form-control" placeholder="🔍 Buscar producto, insumo, detalle..." oninput="loadExpenses()">
+            <select id="expenseTypeFilter" class="form-control" onchange="loadExpenses()">
+              <option value="TODOS">📁 Todos los tipos de gasto</option>
+              <option value="Detergentes y Químicos">🧼 Detergentes y Químicos</option>
+              <option value="Suavizantes">🌸 Suavizantes y Aromas</option>
+              <option value="Bolsas y Empaques">🛍️ Bolsas y Empaques</option>
+              <option value="Insumos de Limpieza">🧹 Insumos de Limpieza</option>
+              <option value="Mantenimiento de Máquinas">🔧 Mantenimiento de Máquinas</option>
+              <option value="Servicios Básicos">⚡ Servicios Básicos (Luz/Agua/Gas)</option>
+              <option value="Otros">📦 Otros Gastos</option>
+            </select>
+            <button type="button" class="btn btn-success" id="btnOpenNewExpenseModal" data-perm="manage_expenses" onclick="openExpenseModal()">
+              ➕ Registrar Gasto
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding: 1.5rem;">
+          <!-- Quick Expenses KPI Row -->
+          <div class="reports-kpi-grid" style="margin-bottom: 1.25rem;">
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#fee2e2; color:#dc2626;">💸</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Total Gastos</span>
+                <span class="kpi-value text-revenue" style="color:#dc2626;" id="expenseTotalAmount">$0</span>
+                <small class="kpi-subtitle">Monto total invertido</small>
+              </div>
+            </div>
+
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#e0f2fe; color:#0369a1;">📦</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Compras Registradas</span>
+                <span class="kpi-value" id="expenseTotalCount">0</span>
+                <small class="kpi-subtitle">Insumos y productos</small>
+              </div>
+            </div>
+
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#fef3c7; color:#b45309;">🏷️</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Gasto Promedio</span>
+                <span class="kpi-value text-amber" id="expenseAvgAmount">$0</span>
+                <small class="kpi-subtitle">Por compra registrada</small>
+              </div>
+            </div>
+
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#f3e8ff; color:#7e22ce;">🔝</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Mayor Inversión</span>
+                <span class="kpi-value" style="font-size: 1.15rem; color:#7e22ce;" id="expenseTopCategory">-</span>
+                <small class="kpi-subtitle" id="expenseTopAmount">$0</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expenses Table -->
+          <div class="orders-table-wrapper">
+            <table class="data-table" id="expensesTable">
+              <thead>
+                <tr>
+                  <th style="width: 140px;">Fecha Compra</th>
+                  <th style="min-width: 220px;">Nombre Producto</th>
+                  <th style="min-width: 180px;">Tipo de Producto</th>
+                  <th style="width: 150px; text-align: right;">Precio (CLP)</th>
+                  <th style="text-align: center; width: 170px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="expensesTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+              <tfoot>
+                <tr style="background: #f8fafc; font-weight: 800; border-top: 2px solid #cbd5e1;">
+                  <td colspan="3">TOTAL GASTOS REGISTRADOS:</td>
+                  <td style="text-align: right; color: #dc2626; font-size: 1.05rem;" id="expensesTableFooterTotal">$0</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: REPORTES DE VENTAS ==================== -->
+    <section id="reportes-ventas" class="tab-pane">
+      <div class="form-card">
+        <!-- Centered Header -->
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered" style="flex-direction: column; gap: 0.35rem;">
+            <img src="/assets/logo.jpeg" alt="Logo Batery Clean" style="height: 48px; width: auto; max-width: 72px; object-fit: contain; border-radius: 6px;">
+            <h2>
+              <span>📊 Centro de Reportes y Estadísticas de Negocio</span>
+            </h2>
+          </div>
+
+          <!-- Quick Date Filter Presets -->
+          <div class="reports-presets-bar">
+            <span class="presets-label">⚡ Período Rápido:</span>
+            <div class="presets-buttons-wrap">
+              <button type="button" class="preset-pill active" data-preset="today" onclick="setReportPreset('today')">Hoy</button>
+              <button type="button" class="preset-pill" data-preset="this-week" onclick="setReportPreset('this-week')">Esta Semana</button>
+              <button type="button" class="preset-pill" data-preset="this-month" onclick="setReportPreset('this-month')">Este Mes</button>
+              <button type="button" class="preset-pill" data-preset="last-month" onclick="setReportPreset('last-month')">Mes Anterior</button>
+              <button type="button" class="preset-pill" data-preset="this-year" onclick="setReportPreset('this-year')">Año Actual</button>
+              <button type="button" class="preset-pill" data-preset="all" onclick="setReportPreset('all')">Todo el Historial</button>
+            </div>
+          </div>
+
+          <!-- Filter Controls Row -->
+          <div class="reports-filter-row">
+            <div class="filter-item">
+              <label for="reportStartDate">📅 Desde</label>
+              <input type="date" id="reportStartDate" class="form-control" onchange="onCustomDateChange()">
+            </div>
+            <div class="filter-item">
+              <label for="reportEndDate">📅 Hasta</label>
+              <input type="date" id="reportEndDate" class="form-control" onchange="onCustomDateChange()">
+            </div>
+            <div class="filter-item">
+              <label for="reportPaymentStatus">💳 Estado Pago</label>
+              <select id="reportPaymentStatus" class="form-control" onchange="loadSalesReport()">
+                <option value="TODOS">Todos Pagos</option>
+                <option value="PAGADO">✅ Pagados</option>
+                <option value="PENDIENTE">⏳ Pendientes</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label for="reportPaymentMethod">💵 Medio Pago</label>
+              <select id="reportPaymentMethod" class="form-control" onchange="syncDetailPaymentMethodFilter(this.value)">
+                <option value="TODOS">Todos Medios</option>
+                <option value="EFECTIVO">💵 Efectivo</option>
+                <option value="DEBITO">💳 Débito</option>
+                <option value="CREDITO">💳 Crédito</option>
+                <option value="TRANSFERENCIA">🏦 Transferencia</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label for="reportDocType">📄 Tipo Doc</label>
+              <select id="reportDocType" class="form-control" onchange="loadSalesReport()">
+                <option value="TODOS">Todos Docs</option>
+                <option value="BOLETA">Boleta</option>
+                <option value="FACTURA">Factura</option>
+                <option value="NINGUNO">Ninguno</option>
+              </select>
+            </div>
+            <div class="filter-actions">
+              <button type="button" class="btn btn-primary" onclick="loadSalesReport()" title="Recalcular informe">
+                🔍 Filtrar
+              </button>
+              <button type="button" class="btn btn-outline" onclick="exportSalesReportCSV()" title="Descargar en Excel CSV">
+                📥 Excel (CSV)
+              </button>
+              <button type="button" class="btn btn-outline" onclick="printSalesReport()" title="Imprimir informe en PDF o papel">
+                🖨️ Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding: 1.5rem;">
+          <!-- Reports Sub-Navigation Bar -->
+          <div class="reports-subnav-bar">
+            <button type="button" class="report-subnav-btn active" data-report-view="finanzas" onclick="switchReportSubView('finanzas')">
+              💰 Balance y Finanzas
+            </button>
+            <button type="button" class="report-subnav-btn" data-report-view="prendas" onclick="switchReportSubView('prendas')">
+              🧺 Prendas y Servicios
+            </button>
+            <button type="button" class="report-subnav-btn" data-report-view="clientes" onclick="switchReportSubView('clientes')">
+              👥 Clientes y Cobranzas
+            </button>
+            <button type="button" class="report-subnav-btn" data-report-view="taller" onclick="switchReportSubView('taller')">
+              ⏱️ Taller y Operaciones
+            </button>
+            <button type="button" class="report-subnav-btn" data-report-view="detalle" onclick="switchReportSubView('detalle')">
+              📋 Auditoría de Pedidos
+            </button>
+          </div>
+
+          <!-- ================= SUB-VIEW 1: BALANCE Y FINANZAS ================= -->
+          <div id="reportSubView-finanzas" class="report-view-pane active">
+            <!-- Financial KPI Grid -->
+            <div class="reports-kpi-grid">
+              <div class="report-kpi-card highlight-revenue">
+                <div class="kpi-icon" style="background:#dcfce7; color:#15803d;">💰</div>
+                <div class="kpi-content">
+                  <span class="kpi-title">Ventas Totales</span>
+                  <span class="kpi-value text-revenue" id="kpiTotalRevenue">$0</span>
+                  <small class="kpi-subtitle" id="kpiTotalOrders">0 pedidos</small>
+                </div>
+              </div>
+
+              <div class="report-kpi-card" style="border-left: 4px solid #ef4444;">
+                <div class="kpi-icon" style="background:#fee2e2; color:#dc2626;">💸</div>
+                <div class="kpi-content">
+                  <span class="kpi-title">Gastos del Período</span>
+                  <span class="kpi-value" style="color: #dc2626;" id="kpiTotalExpenses">$0</span>
+                  <small class="kpi-subtitle" id="kpiExpensesCount">0 compras registradas</small>
+                </div>
+              </div>
+
+              <div class="report-kpi-card" style="border-left: 4px solid #10b981;">
+                <div class="kpi-icon" style="background:#d1fae5; color:#047857;">📈</div>
+                <div class="kpi-content">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="kpi-title">Utilidad Neta</span>
+                    <span class="profit-badge positive" id="kpiProfitMargin">0% margen</span>
+                  </div>
+                  <span class="kpi-value" style="color:#0f766e;" id="kpiNetProfit">$0</span>
+                  <small class="kpi-subtitle">Ventas menos Gastos</small>
+                </div>
+              </div>
+
+              <div class="report-kpi-card highlight-paid">
+                <div class="kpi-icon" style="background:#d1fae5; color:#047857;">💳</div>
+                <div class="kpi-content">
+                  <span class="kpi-title">Total Cobrado</span>
+                  <span class="kpi-value text-success" id="kpiPaidRevenue">$0</span>
+                  <small class="kpi-subtitle" id="kpiPaidPercent">0% del total</small>
+                </div>
+              </div>
+
+              <div class="report-kpi-card highlight-pending">
+                <div class="kpi-icon" style="background:#fef3c7; color:#b45309;">⏳</div>
+                <div class="kpi-content">
+                  <span class="kpi-title">Por Cobrar</span>
+                  <span class="kpi-value text-amber" id="kpiPendingRevenue">$0</span>
+                  <small class="kpi-subtitle" id="kpiPendingPercent">0% pendiente</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Daily Revenue vs Expenses Comparison Chart -->
+            <div class="chart-box" style="margin-bottom: 1.5rem;">
+              <div class="chart-header">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <h4>📈 Evolución Diaria: Ventas vs Gastos</h4>
+                  <div style="display: flex; gap: 0.75rem; font-size: 0.78rem; font-weight: 700;">
+                    <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 10px; height: 10px; background: #0077e6; border-radius: 2px;"></span> Ventas</span>
+                    <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 10px; height: 10px; background: #dc2626; border-radius: 2px;"></span> Gastos</span>
+                  </div>
+                </div>
+                <span class="chart-badge" id="chartPeriodBadge">Día a día</span>
+              </div>
+              <div class="chart-body" id="salesTimelineContainer">
+                <!-- SVG / HTML5 dynamic bar chart injected via JS -->
+              </div>
+            </div>
+
+            <!-- 3-Column Breakdowns (Payment Methods, Tax Documents, Expense Categories) -->
+            <div class="reports-grid-3col">
+              <!-- Payment Methods (Efectivo / Débito / Crédito / Transferencia) -->
+              <div class="chart-box">
+                <div class="chart-header">
+                  <h4>💳 Ventas por Medio de Pago</h4>
+                  <span class="chart-badge">Caja y Tarjetas</span>
+                </div>
+                <div class="breakdown-list" id="paymentMethodsBreakdownContainer">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+
+              <!-- Tax Documents (Boleta / Factura / Ninguno) -->
+              <div class="chart-box">
+                <div class="chart-header">
+                  <h4>📄 Ventas por Tipo de Documento</h4>
+                  <span class="chart-badge">Tributario / SII</span>
+                </div>
+                <div class="breakdown-list" id="docTypesBreakdownContainer">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+
+              <!-- Expenses by Category -->
+              <div class="chart-box">
+                <div class="chart-header">
+                  <h4>💸 Gastos por Categoría</h4>
+                  <span class="chart-badge">Insumos y Costos</span>
+                </div>
+                <div class="breakdown-list" id="expensesBreakdownContainer">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= SUB-VIEW 2: PRENDAS Y SERVICIOS ================= -->
+          <div id="reportSubView-prendas" class="report-view-pane">
+            <div class="reports-kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="report-kpi-card highlight-items">
+                <div class="kpi-icon" style="background:#ede9fe; color:#6d28d9;">👕</div>
+                <div class="kpi-content">
+                  <span class="kpi-title">Prendas Procesadas</span>
+                  <span class="kpi-value" id="kpiPrendasTotal">0 prendas</span>
+                  <small class="kpi-subtitle">Volumen total de lavado</small>
+                </div>
+              </div>
+
+              <div class="report-kpi-card">
+                <div class="kpi-icon" style="background:#e0f2fe; color:#0284c7;">🎫</div>
+                <div class="kpi-content">
+                  <span class="kpi-title">Ticket Promedio</span>
+                  <span class="kpi-value" id="kpiPrendasAvgTicket">$0</span>
+                  <small class="kpi-subtitle">Promedio por cada orden</small>
+                </div>
+              </div>
+
+              <div class="report-kpi-card">
+                <div class="kpi-icon" style="background:#fef3c7; color:#d97706;">🏷️</div>
+                <div class="kpi-content">
+                  <span class="kpi-title">Valor Promedio por Prenda</span>
+                  <span class="kpi-value" id="kpiPrendasAvgItem">$0</span>
+                  <small class="kpi-subtitle">Ingreso promedio por unidad</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="reports-grid-2col">
+              <!-- Top Selling Garments / Services -->
+              <div class="chart-box">
+                <div class="chart-header">
+                  <h4>🧺 Prendas Más Demandadas (Top 10)</h4>
+                  <span class="chart-badge">Por cantidad</span>
+                </div>
+                <div class="chart-body" id="topServicesContainer" style="padding: 1.15rem;">
+                  <!-- Top services list with progress bars injected via JS -->
+                </div>
+              </div>
+
+              <!-- Revenue by Service Category -->
+              <div class="chart-box">
+                <div class="chart-header">
+                  <h4>📊 Ingresos por Categoría de Servicio</h4>
+                  <span class="chart-badge">Distribución %</span>
+                </div>
+                <div class="breakdown-list" id="categoriesBreakdownContainer">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= SUB-VIEW 3: CLIENTES Y COBRANZAS ================= -->
+          <div id="reportSubView-clientes" class="report-view-pane">
+            <!-- Debtors / Accounts Receivable Section -->
+            <div class="chart-box" style="margin-bottom: 1.5rem; border-top: 4px solid #f59e0b;">
+              <div class="chart-header" style="background: #fffbeb;">
+                <div>
+                  <h4 style="color: #92400e;">⏳ Cuentas por Cobrar (Clientes con Saldo Pendiente)</h4>
+                  <small style="color: #b45309;">Listado de clientes con pedidos pendientes de pago para gestión de cobranza directa.</small>
+                </div>
+                <span class="profit-badge negative" id="debtorsTotalBadge">$0 total adeudado</span>
+              </div>
+              <div class="orders-table-wrapper" style="padding: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Cliente</th>
+                      <th>Teléfono / WhatsApp</th>
+                      <th>Folios Pendientes</th>
+                      <th>Fecha Más Antigua</th>
+                      <th style="text-align: right;">Total Deuda</th>
+                      <th style="text-align: center; width: 140px;">Cobranza</th>
+                    </tr>
+                  </thead>
+                  <tbody id="debtorsTableBody">
+                    <!-- Injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Top Spending Clients -->
+            <div class="chart-box">
+              <div class="chart-header">
+                <h4>👥 Clientes Más Frecuentes y de Mayor Compra (Top 10)</h4>
+                <span class="chart-badge">Fidelización</span>
+              </div>
+              <div class="orders-table-wrapper" style="padding: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 60px;">#</th>
+                      <th>Nombre del Cliente</th>
+                      <th>Teléfono</th>
+                      <th style="text-align: center;">Pedidos Realizados</th>
+                      <th style="text-align: right;">Total Facturado</th>
+                      <th style="text-align: center;">Estado Saldo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="topClientsTableBody">
+                    <!-- Injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= SUB-VIEW 4: TALLER Y OPERACIONES ================= -->
+          <div id="reportSubView-taller" class="report-view-pane">
+            <!-- Pipeline Cards -->
+            <div class="workshop-pipeline-grid">
+              <div class="workshop-pipe-card pipe-recibido">
+                <span class="workshop-pipe-title">📥 1. Recibidos</span>
+                <span class="workshop-pipe-count" id="pipeRecibidoCount">0</span>
+                <span class="workshop-pipe-amount" id="pipeRecibidoAmount">$0 en taller</span>
+              </div>
+              <div class="workshop-pipe-card pipe-enproceso">
+                <span class="workshop-pipe-title">🧼 2. En Proceso</span>
+                <span class="workshop-pipe-count" id="pipeEnProcesoCount">0</span>
+                <span class="workshop-pipe-amount" id="pipeEnProcesoAmount">$0 en lavado/secado</span>
+              </div>
+              <div class="workshop-pipe-card pipe-listo">
+                <span class="workshop-pipe-title">✨ 3. Listos para Entrega</span>
+                <span class="workshop-pipe-count" id="pipeListoCount">0</span>
+                <span class="workshop-pipe-amount" id="pipeListoAmount">$0 listos</span>
+              </div>
+              <div class="workshop-pipe-card pipe-entregado">
+                <span class="workshop-pipe-title">📦 4. Entregados</span>
+                <span class="workshop-pipe-count" id="pipeEntregadoCount">0</span>
+                <span class="workshop-pipe-amount" id="pipeEntregadoAmount">$0 completados</span>
+              </div>
+            </div>
+
+            <!-- Overdue Orders Warning Banner (if any) -->
+            <div id="workshopOverdueBanner" class="workshop-alert-banner" style="display: none;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.8rem;">⚠️</span>
+                <div>
+                  <strong style="color: #991b1b; font-size: 0.95rem;" id="workshopOverdueTitle">0 Pedidos Atrasados</strong>
+                  <p style="color: #b91c1c; font-size: 0.85rem; margin: 0;" id="workshopOverdueSubtitle">Tienen fecha estimada de entrega vencida y aún no han sido entregados.</p>
+                </div>
+              </div>
+              <button type="button" class="btn btn-danger" style="height: 36px; font-size: 0.82rem;" onclick="filterTableByOverdue()">
+                Ver en Control de Pedidos
+              </button>
+            </div>
+
+            <!-- Upcoming Deliveries (Hoy y Próximos 2 Días) -->
+            <div class="chart-box" style="margin-bottom: 1.5rem; border-top: 4px solid #f59e0b;">
+              <div class="chart-header" style="background: #fffbeb;">
+                <h4 style="color: #92400e;">⏰ Entregas Más Próximas (Hoy y Próximos 2 Días)</h4>
+                <span class="chart-badge" id="upcomingWorkshopBadge" style="background:#fef3c7; color:#b45309;">0 próximas</span>
+              </div>
+              <div class="orders-table-wrapper" style="padding: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 100px;">Folio</th>
+                      <th>Cliente</th>
+                      <th>Teléfono</th>
+                      <th>Entrega Estimada</th>
+                      <th>Estado Taller</th>
+                      <th style="text-align: right;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="upcomingWorkshopTableBody">
+                    <!-- Injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Ready for Pickup List -->
+            <div class="chart-box">
+              <div class="chart-header">
+                <h4>✨ Pedidos Listos Esperando Retiro del Cliente</h4>
+                <span class="chart-badge" id="readyForPickupBadge">0 listos</span>
+              </div>
+              <div class="orders-table-wrapper" style="padding: 0;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 100px;">Folio</th>
+                      <th>Cliente</th>
+                      <th>Teléfono</th>
+                      <th>Fecha Entrega Estimada</th>
+                      <th style="text-align: right;">Total</th>
+                      <th style="text-align: center; width: 150px;">Avisar Retiro</th>
+                    </tr>
+                  </thead>
+                  <tbody id="readyPickupTableBody">
+                    <!-- Injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= SUB-VIEW 5: DETALLE DE PEDIDOS ================= -->
+          <div id="reportSubView-detalle" class="report-view-pane">
+            <div class="reports-detail-section" style="margin-top: 0;">
+              <div class="detail-header" style="gap: 0.75rem;">
+                <div>
+                  <h4>📋 Detalle Completo de Ventas (<span id="detailOrdersCount">0</span>)</h4>
+                  <small style="color: #64748b; font-weight: 600;">Filtra al instante por medio de pago, folio, cliente o RUT</small>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                  <div class="detail-method-pills" id="detailPaymentMethodPills">
+                    <button type="button" class="method-pill active" data-method="TODOS" onclick="setDetailPaymentMethod('TODOS')">Todos</button>
+                    <button type="button" class="method-pill" data-method="EFECTIVO" onclick="setDetailPaymentMethod('EFECTIVO')">💵 Efectivo</button>
+                    <button type="button" class="method-pill" data-method="DEBITO" onclick="setDetailPaymentMethod('DEBITO')">💳 Débito</button>
+                    <button type="button" class="method-pill" data-method="CREDITO" onclick="setDetailPaymentMethod('CREDITO')">💳 Crédito</button>
+                    <button type="button" class="method-pill" data-method="TRANSFERENCIA" onclick="setDetailPaymentMethod('TRANSFERENCIA')">🏦 Transf.</button>
+                  </div>
+                  <input type="text" id="reportTableSearch" class="form-control detail-search" placeholder="🔍 Folio, cliente o RUT..." oninput="filterReportTable()">
+                </div>
+              </div>
+
+              <div class="orders-table-wrapper">
+                <table class="data-table" id="reportDetailTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 95px;">Folio</th>
+                      <th style="min-width: 175px;">Fechas (Recep. / Est. / Salida)</th>
+                      <th style="min-width: 170px;">Cliente / RUT</th>
+                      <th style="min-width: 170px;">Prendas Lavadas</th>
+                      <th style="width: 95px;">Doc</th>
+                      <th style="width: 120px;">Estado</th>
+                      <th style="width: 145px;">Pago / Medio</th>
+                      <th style="text-align: right; width: 120px;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportTableBody">
+                    <!-- Injected via JS -->
+                  </tbody>
+                  <tfoot>
+                    <tr style="background: #f1f5f9; font-weight: 800; border-top: 2px solid #cbd5e1;">
+                      <td colspan="3">TOTALES ACUMULADOS:</td>
+                      <td id="reportFooterItems">0 prendas</td>
+                      <td colspan="3"></td>
+                      <td style="text-align: right; color: #0077e6; font-size: 1.1rem;" id="reportFooterTotal">$0</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: AJUSTES ==================== -->
+    <section id="ajustes" class="tab-pane">
+      <div class="form-card">
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered">
+            <h2>
+              <span>⚙️ Ajustes de tu Lavandería</span>
+            </h2>
+          </div>
+        </div>
+        <div class="card-body" style="padding: 1.75rem 1.5rem;">
+
+          <!-- Card 1: Datos del Negocio y Logo Personalizado -->
+          <div style="max-width: 860px; margin: 0 auto 1.5rem; background: #ffffff; border: 1px solid var(--surface-border); border-radius: 12px; padding: 1.75rem; box-shadow: var(--shadow-sm);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem;">
+              <div>
+                <h3 style="color: var(--primary-navy); font-size: 1.2rem; font-weight: 800; margin-bottom: 0.25rem;">
+                  🏢 Identidad, Logo y Datos Comerciales
+                </h3>
+                <p style="color: #64748b; font-size: 0.9rem; margin: 0;">
+                  Personaliza el nombre, contacto, RUT, condiciones y logo de tu lavandería. Se reflejarán en todo el sistema y en las guías impresas.
+                </p>
+              </div>
+            </div>
+
+            <form id="laundrySettingsForm" autocomplete="off" onsubmit="event.preventDefault(); saveLaundrySettingsSubmit();">
+              <!-- Bloque Logo -->
+              <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+                <img id="settingsLogoPreview" src="/assets/logo.jpeg" alt="Vista previa del logo" style="width: 86px; height: 86px; object-fit: contain; border-radius: 10px; background: #ffffff; border: 2px solid #cbd5e1; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <div style="flex: 1; min-width: 220px;">
+                  <div style="font-weight: 800; color: var(--primary-navy); margin-bottom: 0.25rem;">🖼️ Logo de la Lavandería</div>
+                  <p style="color: #64748b; font-size: 0.82rem; margin-bottom: 0.65rem;">
+                    Formatos permitidos: PNG, JPG, WEBP o GIF. Se optimiza automáticamente para impresiones y barra superior.
+                  </p>
+                  <input type="file" id="settingsLogoFileInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display: none;" onchange="handleSettingsLogoFileChange(event)">
+                  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="document.getElementById('settingsLogoFileInput').click()">
+                      📷 Subir Nuevo Logo
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline" onclick="resetLaundryLogoToDefault()">
+                      🔄 Restaurar Predeterminado
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+                <div class="form-group">
+                  <label for="settingsName">Nombre de la Lavandería *</label>
+                  <input type="text" id="settingsName" class="form-control" required placeholder="Ej: LAVANDERÍA BATERY CLEAN">
+                </div>
+                <div class="form-group">
+                  <label for="settingsSlogan">Slogan / Subtítulo</label>
+                  <input type="text" id="settingsSlogan" class="form-control" placeholder="Ej: Lavado de Alta Energía">
+                </div>
+              </div>
+
+              <div class="fields-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 0.85rem;">
+                <div class="form-group">
+                  <label for="settingsRut">RUT Empresa (sin puntos)</label>
+                  <input type="text" id="settingsRut" class="form-control" placeholder="76123456-7" style="font-family: monospace; font-weight: 700;">
+                </div>
+                <div class="form-group">
+                  <label for="settingsPhone">Teléfono / WhatsApp</label>
+                  <input type="tel" id="settingsPhone" class="form-control" placeholder="+569 68096021">
+                </div>
+                <div class="form-group">
+                  <label for="settingsInstagram">Instagram (sin @)</label>
+                  <input type="text" id="settingsInstagram" class="form-control" placeholder="lavanderiabateryclean_">
+                </div>
+              </div>
+
+              <div class="fields-grid" style="grid-template-columns: 1.3fr 1fr; margin-bottom: 0.85rem;">
+                <div class="form-group">
+                  <label for="settingsAddress">Dirección del Local</label>
+                  <input type="text" id="settingsAddress" class="form-control" placeholder="Calle Villa Alegre 603, Nacimiento">
+                </div>
+                <div class="form-group">
+                  <label for="settingsEmail">Correo Electrónico</label>
+                  <input type="email" id="settingsEmail" class="form-control" placeholder="contacto@lavanderia.cl">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="settingsTerms">Términos y Condiciones (pie de Guía de Recepción impresa)</label>
+                <textarea id="settingsTerms" class="form-control" rows="4" placeholder="Condiciones de servicio mostradas en los comprobantes..."></textarea>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" id="btnSaveLaundrySettings" class="btn btn-success" style="height: 42px; padding: 0 1.5rem; font-weight: 800;">
+                  💾 Guardar Datos y Logo
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Card 2: Exportación y Respaldo -->
+          <div style="max-width: 860px; margin: 0 auto; background: #ffffff; border: 1px solid var(--surface-border); border-radius: 12px; padding: 1.75rem; box-shadow: var(--shadow-sm);">
+            <div style="display: flex; align-items: flex-start; gap: 1.25rem; margin-bottom: 1.25rem;">
+              <img src="/assets/logo.jpeg" alt="Logo" class="tenant-logo-img" style="width: 64px; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; padding: 2px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); flex-shrink: 0; background: #ffffff;">
+              <div>
+                <h3 style="color: var(--primary-navy); font-size: 1.15rem; font-weight: 800; margin-bottom: 0.35rem;">
+                  Exportar y Respaldar Base de Datos
+                </h3>
+                <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5;">
+                  Descarga una copia de seguridad completa con todos los datos registrados en tu sede (clientes, catálogo de precios, servicios, órdenes y gastos).
+                </p>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; border-top: 1px solid #e2e8f0; padding-top: 1.25rem;">
+              <div data-perm="export_backups" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <div style="font-weight: 800; color: #0f172a; margin-bottom: 0.3rem; font-size: 1rem;">
+                    📄 Respaldo JSON Completo de tu Sede
+                  </div>
+                  <p style="color: #64748b; font-size: 0.85rem; line-height: 1.4; margin-bottom: 1.25rem;">
+                    Exporta únicamente los datos propios de tu lavandería en formato JSON seguro.
+                  </p>
+                </div>
+                <a href="/api/sync/export" download="respaldo_lavanderia.json" class="btn btn-primary" style="width: 100%; text-decoration: none;">
+                  📥 Descargar Copia JSON
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 7: USUARIOS & ROLES DE LA LAVANDERÍA ==================== -->
+    <section id="usuarios-roles" class="tab-pane">
+      <div class="form-card">
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered">
+            <h2>
+              <span>🔐 Usuarios, Roles y Permisos — <span id="usersSectionLaundryName">Lavandería</span></span>
+            </h2>
+          </div>
+          <div class="subtabs-bar" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0; justify-content: center;">
+            <button type="button" class="btn btn-primary" id="btnSubTabUsers" onclick="switchUsersRolesSubTab('users')">
+              👤 Usuarios de esta Lavandería
+            </button>
+            <button type="button" class="btn btn-outline" id="btnSubTabRoles" onclick="switchUsersRolesSubTab('roles')">
+              🛡️ Roles y Permisos
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding: 1.5rem;">
+          <!-- Sub-vista USUARIOS -->
+          <div id="usersSubPane">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+              <p style="margin: 0; color: #475569; font-size: 0.92rem;">
+                Crea cuentas para cajeros, operadores de taller o administradores. El cajero es un usuario más sujeto a los permisos de su rol.
+              </p>
+              <button type="button" class="btn btn-success" id="btnOpenNewUserModal" data-perm="manage_users" onclick="openUserModal()">
+                ➕ Nuevo Usuario
+              </button>
+            </div>
+
+            <div class="orders-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Nombre Completo</th>
+                    <th>Correo</th>
+                    <th>Rol Asignado</th>
+                    <th>Estado</th>
+                    <th style="text-align: center; width: 200px;">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sub-vista ROLES Y PERMISOS -->
+          <div id="rolesSubPane" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+              <p style="margin: 0; color: #475569; font-size: 0.92rem;">
+                Crea nuevos roles o edita los permisos de roles existentes (como <strong>Cajero</strong> u <strong>Operador Taller</strong>) para controlar exactamente qué puede ver y hacer cada usuario.
+              </p>
+              <button type="button" class="btn btn-success" id="btnOpenNewRoleModal" data-perm="manage_roles" onclick="openRoleModal()">
+                ➕ Nuevo Rol
+              </button>
+            </div>
+
+            <div id="rolesListGrid" class="roles-cards-grid">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 8: ESTADÍSTICAS SAAS (SUPER USUARIO - PRIVACY FIRST) ==================== -->
+    <section id="saas-dashboard" class="tab-pane">
+      <div class="form-card">
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered">
+            <h2>
+              <span>📊 Estadísticas Globales SaaS</span>
+            </h2>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding: 1.5rem;">
+          <!-- Alertas de Vencimiento Próximo (<= 5 días) -->
+          <div id="saasExpiringBanner" class="saas-expiring-banner" style="display: none;">
+            <div style="font-weight: 800; color: #991b1b; margin-bottom: 0.55rem; display: flex; align-items: center; gap: 0.45rem;">
+              <span>⚠️</span>
+              <span>Alertas de Suscripción: Lavanderías próximas a vencer (5 días o menos)</span>
+            </div>
+            <div id="saasExpiringChips" style="display: flex; flex-wrap: wrap; gap: 0.55rem;"></div>
+          </div>
+
+          <!-- 4 KPIs Comerciales del SaaS -->
+          <div class="reports-kpi-grid" style="margin-bottom: 1.35rem;">
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#e0f2fe; color:#0284c7;">🏢</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Lavanderías Afiliadas</span>
+                <span class="kpi-value" id="saasKpiTotalBiz">0</span>
+                <small class="kpi-subtitle" id="saasKpiBizBreakdown">0 activas / 0 inactivas</small>
+              </div>
+            </div>
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#dcfce7; color:#16a34a;">💰</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Facturación Recurrente (MRR)</span>
+                <span class="kpi-value text-green" id="saasKpiMrr">$0</span>
+                <small class="kpi-subtitle" id="saasKpiArr">ARR Proyectado: $0 / año</small>
+              </div>
+            </div>
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#fef3c7; color:#b45309;">📈</div>
+              <div class="kpi-content">
+                <span class="kpi-title">ARPU (Ingreso Medio / Sede)</span>
+                <span class="kpi-value text-amber" id="saasKpiArpu">$0</span>
+                <small class="kpi-subtitle">Promedio mensual por sede activa</small>
+              </div>
+            </div>
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#f3e8ff; color:#7e22ce;">🏷️</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Catálogo & Cuentas Staff</span>
+                <span class="kpi-value" id="saasKpiStaff">0</span>
+                <small class="kpi-subtitle" id="saasKpiCatalogMeta">0 prendas en catálogos</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="saas-grid-2-1">
+            <!-- Ecosistema de Planes y Suscripciones -->
+            <div class="chart-box" style="padding: 1.25rem;">
+              <h4 style="margin-bottom: 1rem; color: var(--primary-navy);">💳 Ecosistema de Planes y Suscripciones</h4>
+              <div id="saasPlansEcosystemList" style="display: flex; flex-direction: column; gap: 0.85rem;"></div>
+            </div>
+
+            <!-- Oportunidades de Upgrade + Salud Operativa -->
+            <div class="chart-box" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem;">
+              <div>
+                <h4 style="margin-bottom: 0.75rem; color: #b45309;">⚡ Oportunidades de Upgrade (Upsell)</h4>
+                <div id="saasUpgradeCandidatesList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+              </div>
+
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+                <h4 style="margin-bottom: 0.75rem; color: var(--primary-navy);">🩺 Salud Operativa del SaaS</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem;">
+                    <small style="color: #64748b; font-weight: 700;">Actividad Sedes</small>
+                    <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7;" id="saasHealthActivePct">0%</div>
+                    <small style="color: #64748b;" id="saasHealthActiveSub">0 de 0 activas</small>
+                  </div>
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem;">
+                    <small style="color: #64748b; font-weight: 700;">Promedio Staff / Sede</small>
+                    <div style="font-size: 1.35rem; font-weight: 900; color: #d97706;" id="saasHealthAvgStaff">0</div>
+                    <small style="color: #64748b;">cuentas por lavandería</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 9: GESTIONAR LAVANDERÍAS (KAJERO PARITY) ==================== -->
+    <section id="saas-businesses" class="tab-pane">
+      <div class="form-card">
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered">
+            <h2>
+              <span>🏢 Gestionar Lavanderías</span>
+            </h2>
+          </div>
+          <div class="subtabs-bar" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0; justify-content: center;">
+            <button type="button" class="btn btn-primary" id="btnSubTabSaasBiz" onclick="switchSaasBusinessesSubTab('businesses')">
+              🏢 Lavanderías Registradas
+            </button>
+            <button type="button" class="btn btn-outline" id="btnSubTabSaasAudit" onclick="switchSaasBusinessesSubTab('audit')">
+              📜 Registro de Auditoría SaaS
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding: 1.5rem;">
+          <!-- Sub-vista A: Lavanderías -->
+          <div id="saasBizSubPane">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+              <p style="margin: 0; color: #475569; font-size: 0.9rem;">
+                Control de suscripciones, vigencias, días de gracia y estados de cada lavandería.
+              </p>
+              <button type="button" class="btn btn-success" onclick="openLaundryModal()">
+                ➕ Crear Nueva Lavandería
+              </button>
+            </div>
+
+            <!-- Barra de Filtros estilo Kajero -->
+            <div class="card-toolbar-fullwidth" style="background: #f8fafc; padding: 0.85rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.15rem; flex-wrap: wrap;">
+              <input type="text" id="saasBizSearch" class="form-control" placeholder="🔍 Buscar por Nombre, RUT o Dirección..." oninput="renderSaasBusinessesTable()" style="flex: 2 1 220px;">
+              <select id="saasBizFilterPlan" class="form-control" onchange="renderSaasBusinessesTable()" style="flex: 1 1 160px;">
+                <option value="">Todos los Planes</option>
+              </select>
+              <select id="saasBizFilterStatus" class="form-control" onchange="renderSaasBusinessesTable()" style="flex: 1 1 160px;">
+                <option value="">Todos los Estados</option>
+                <option value="Activo">Activo</option>
+                <option value="Suspendido">Suspendido</option>
+                <option value="Dado de Baja">Dado de Baja</option>
+                <option value="TRIAL">En Periodo de Prueba</option>
+              </select>
+              <label style="display: inline-flex; align-items: center; gap: 0.4rem; background: #ffffff; border: 1px solid #cbd5e1; padding: 0.45rem 0.75rem; border-radius: 8px; font-size: 0.84rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                <input type="checkbox" id="saasShowDeactivated" onchange="renderSaasBusinessesTable()">
+                <span>Mostrar dados de baja (<span id="saasDeactivatedCount">0</span>)</span>
+              </label>
+              <button type="button" class="btn btn-outline btn-sm" onclick="clearSaasBizFilters()">✕ Limpiar</button>
+            </div>
+
+            <div class="orders-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Lavandería / Slogan</th>
+                    <th>RUT</th>
+                    <th>Plan Contratado</th>
+                    <th style="text-align: center;">Usuarios</th>
+                    <th style="text-align: center;">Catálogo</th>
+                    <th>Registro / Último Pago</th>
+                    <th>Vigencia</th>
+                    <th>Estado</th>
+                    <th style="text-align: center; min-width: 180px;">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="saasLaundriesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sub-vista B: Auditoría SaaS -->
+          <div id="saasAuditSubPane" style="display: none;">
+            <div class="card-toolbar-fullwidth" style="background: #f8fafc; padding: 0.85rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.15rem; flex-wrap: wrap;">
+              <input type="text" id="auditFilterUser" class="form-control" placeholder="👤 Filtrar por admin..." oninput="renderSaasAuditTable()" style="flex: 1 1 160px;">
+              <input type="text" id="auditFilterBiz" class="form-control" placeholder="🏢 Filtrar por lavandería..." oninput="renderSaasAuditTable()" style="flex: 1 1 160px;">
+              <select id="auditFilterAction" class="form-control" onchange="renderSaasAuditTable()" style="flex: 1 1 140px;">
+                <option value="">Todas las Acciones</option>
+                <option value="CREATE">CREAR</option>
+                <option value="UPDATE">EDITAR</option>
+                <option value="GRACE">DÍAS DE GRACIA</option>
+                <option value="DELETE">ELIMINAR</option>
+              </select>
+            </div>
+            <div class="orders-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Fecha / Hora</th>
+                    <th>Admin SaaS</th>
+                    <th>Acción</th>
+                    <th>Entidad / Sede</th>
+                    <th>Detalle Administrativo</th>
+                  </tr>
+                </thead>
+                <tbody id="saasAuditTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 10: GESTIONAR PLATAFORMA (PLANES, ADMINS SAAS, ACUERDO) ==================== -->
+    <section id="saas-platform" class="tab-pane">
+      <div class="form-card">
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered">
+            <h2>
+              <span>✨ Gestionar Plataforma SaaS</span>
+            </h2>
+          </div>
+          <div class="subtabs-bar" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0; justify-content: center;">
+            <button type="button" class="btn btn-primary" id="btnSubTabPlans" onclick="switchSaasPlatformSubTab('plans')">
+              💳 Planes y Suscripciones
+            </button>
+            <button type="button" class="btn btn-outline" id="btnSubTabSaasAdmins" onclick="switchSaasPlatformSubTab('admins')">
+              👑 Super Administradores
+            </button>
+            <button type="button" class="btn btn-outline" id="btnSubTabAgreements" onclick="switchSaasPlatformSubTab('agreements')">
+              📄 Acuerdo de Privacidad
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding: 1.5rem;">
+          <!-- Planes -->
+          <div id="saasPlansSubPane">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+              <p style="margin: 0; color: #475569; font-size: 0.9rem;">Define precios mensuales, límites de usuarios/prendas y módulos habilitados para cada plan.</p>
+              <button type="button" class="btn btn-success" onclick="openPlanModal()">➕ Crear Plan</button>
+            </div>
+            <div class="orders-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Plan</th>
+                    <th>Precio Mensual</th>
+                    <th style="text-align: center;">Límite Usuarios</th>
+                    <th style="text-align: center;">Límite Prendas</th>
+                    <th>Módulos / Soporte</th>
+                    <th style="text-align: center;">Sedes Activas</th>
+                    <th style="text-align: center; width: 150px;">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="saasPlansTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Super Administradores -->
+          <div id="saasAdminsSubPane" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+              <p style="margin: 0; color: #475569; font-size: 0.9rem;">Cuentas globales con acceso exclusivo a la administración SaaS (nunca tienen acceso a las ventas de las lavanderías).</p>
+              <button type="button" class="btn btn-success" onclick="openSaasAdminModal()">➕ Nuevo SuperAdmin</button>
+            </div>
+            <div class="orders-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Nombre Completo</th>
+                    <th>Correo</th>
+                    <th>Estado</th>
+                    <th style="text-align: center; width: 150px;">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="saasAdminsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Acuerdo de Privacidad SaaS -->
+          <div id="saasAgreementsSubPane" style="display: none;">
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.25rem;" class="saas-grid-2-1">
+              <form id="agreementForm" onsubmit="event.preventDefault(); publishAgreementSubmit();" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem;">
+                <h4 style="margin-bottom: 0.85rem; color: var(--primary-navy);">Publicar Nueva Versión del Acuerdo de Privacidad</h4>
+                <div class="fields-grid" style="grid-template-columns: 2fr 1fr; margin-bottom: 0.85rem;">
+                  <div class="form-group">
+                    <label for="agreementTitleInput">Título del Acuerdo *</label>
+                    <input type="text" id="agreementTitleInput" class="form-control" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="agreementVersionInput">Versión *</label>
+                    <input type="text" id="agreementVersionInput" class="form-control" placeholder="ej: v1.1" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="agreementContentInput">Contenido Legal / Garantía de Privacidad *</label>
+                  <textarea id="agreementContentInput" class="form-control" rows="6" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">📄 Publicar Nueva Versión</button>
+              </form>
+              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem;">
+                <h4 style="margin-bottom: 0.85rem; color: var(--primary-navy);">Historial de Versiones</h4>
+                <div id="saasAgreementsHistory" style="display: flex; flex-direction: column; gap: 0.65rem;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 11: SOPORTE SAAS (SUPERADMIN & ADMIN LOCAL) ==================== -->
+    <section id="soporte" class="tab-pane">
+      <div class="form-card">
+        <div class="card-header card-header-stacked">
+          <div class="card-header-title-centered">
+            <h2>
+              <span>🎧 Centro de Soporte Técnico SaaS</span>
+            </h2>
+          </div>
+          <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-success" id="btnNewSupportTicket" onclick="openSupportCreateModal()">
+              ➕ Abrir Nuevo Ticket de Soporte
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding: 1.5rem;">
+          <div class="reports-kpi-grid" style="margin-bottom: 1.25rem;">
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#e0f2fe; color:#0284c7;">🎫</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Tickets Totales</span>
+                <span class="kpi-value" id="supportTotalCount">0</span>
+              </div>
+            </div>
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#fef3c7; color:#b45309;">⏳</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Pendientes</span>
+                <span class="kpi-value text-amber" id="supportPendingCount">0</span>
+              </div>
+            </div>
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#e0e7ff; color:#4338ca;">🛠️</div>
+              <div class="kpi-content">
+                <span class="kpi-title">En Atención</span>
+                <span class="kpi-value" id="supportInProgressCount">0</span>
+              </div>
+            </div>
+            <div class="report-kpi-card">
+              <div class="kpi-icon" style="background:#dcfce7; color:#16a34a;">✅</div>
+              <div class="kpi-content">
+                <span class="kpi-title">Resueltos</span>
+                <span class="kpi-value text-green" id="supportResolvedCount">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="orders-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Lavandería</th>
+                  <th>Asunto / Solicitante</th>
+                  <th>Categoría / Prioridad</th>
+                  <th>Estado</th>
+                  <th>Última Act.</th>
+                  <th style="text-align: center; width: 150px;">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="supportTicketsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL DE IMPRESIÓN (RÉPLICA DEL AFICHE) ==================== -->
+  <div class="modal-overlay" id="printReceiptModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Vista Previa: Guía de Recepción</h3>
+        <button type="button" class="btn btn-sm btn-outline" id="btnClosePrintModal">✕ Cerrar</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="receiptPrintContent">
+          <!-- Injected via JS matching flyer format -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('printReceiptModal').classList.remove('open')">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="btnPrintReceiptAction">🖨️ Mandar a Imprimir (PDF / Papel)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE CLIENTE (CREAR / EDITAR) ==================== -->
+  <div class="modal-overlay" id="clientFormModal">
+    <div class="modal-container" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 id="clientModalTitle">➕ Nuevo Cliente</h3>
+        <button type="button" class="btn btn-sm btn-outline" id="btnCloseClientModal">✕</button>
+      </div>
+
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="clientForm" autocomplete="off">
+          <input type="hidden" id="modalClientId" value="">
+
+          <div class="form-group">
+            <label for="modalClientName">Nombre Completo *</label>
+            <input type="text" id="modalClientName" class="form-control" placeholder="Ej: Juan Pérez González" required>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalClientPhone">Teléfono / WhatsApp</label>
+              <input type="tel" id="modalClientPhone" class="form-control" placeholder="+569 1234 5678">
+            </div>
+
+            <div class="form-group">
+              <label for="modalClientEmail">Correo Electrónico</label>
+              <input type="email" id="modalClientEmail" class="form-control" placeholder="ejemplo@correo.com">
+            </div>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalClientRut">RUT (sin puntos, opcional)</label>
+              <input type="text" id="modalClientRut" class="form-control" placeholder="Ej: 12345678-9" style="font-family: monospace; font-weight: 700;">
+            </div>
+
+            <div class="form-group">
+              <label for="modalClientAddress">Dirección</label>
+              <input type="text" id="modalClientAddress" class="form-control" placeholder="Ej: Calle Villa Alegre 123, Nacimiento">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="modalClientNotes">Notas u Observaciones del Cliente (Opcional)</label>
+            <textarea id="modalClientNotes" class="form-control" rows="3" placeholder="Ej: Cliente frecuente, solicitar confirmación de entrega por WhatsApp..."></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelClientModal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSaveClientModal">💾 Guardar Cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE CONFIRMACIÓN DE ELIMINACIÓN ==================== -->
+  <div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal-container" style="max-width: 480px;">
+      <div class="modal-header" style="background: #fef2f2; border-bottom: 1px solid #fee2e2;">
+        <h3 style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem;">
+          <span>⚠️ Confirmar Eliminación</span>
+        </h3>
+        <button type="button" class="btn btn-sm btn-outline" id="btnCloseDeleteModal">✕</button>
+      </div>
+
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <div style="text-align: center; margin-bottom: 1rem;">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 0.75rem;">
+            🗑️
+          </div>
+          <h4 id="deleteConfirmTitle" style="font-size: 1.15rem; color: #0f172a; margin-bottom: 0.4rem;">¿Eliminar cliente?</h4>
+          <p id="deleteConfirmMessage" style="color: #475569; font-size: 0.95rem; line-height: 1.5;">
+            Esta acción no se puede deshacer.
+          </p>
+        </div>
+
+        <div id="deleteWarningOrdersBox" style="display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 0.85rem; font-size: 0.85rem; color: #92400e; margin-top: 0.75rem;">
+          ⚠️ <strong>Nota:</strong> Este cliente tiene <span id="deleteClientOrdersCount" style="font-weight: 800;">0</span> pedido(s) asociados en el historial. Sus pedidos históricos se conservarán intactos como respaldo.
+        </div>
+      </div>
+
+      <div class="modal-footer" style="background: #f8fafc;">
+        <button type="button" class="btn btn-secondary" id="btnCancelDeleteModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmDeleteAction">🗑️ Sí, Eliminar Definitivamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE SERVICIO / PRENDA (CREAR / EDITAR) ==================== -->
+  <div class="modal-overlay" id="serviceFormModal">
+    <div class="modal-container" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="serviceModalTitle">➕ Nueva Prenda o Servicio</h3>
+        <button type="button" class="btn btn-sm btn-outline" id="btnCloseServiceModal" onclick="closeServiceModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="serviceForm" autocomplete="off" onsubmit="event.preventDefault(); saveServiceModalSubmit();">
+          <input type="hidden" id="modalServiceId" value="">
+
+          <div class="form-group">
+            <label for="modalServiceName">Nombre de la Prenda o Servicio *</label>
+            <input type="text" id="modalServiceName" class="form-control" placeholder="Ej: Plumón 2 Plazas, Alfombra, etc." required>
+          </div>
+
+          <div class="form-group">
+            <label for="modalServiceCategory">Categoría del Servicio *</label>
+            <select id="modalServiceCategory" class="form-control" onchange="checkCustomCategory(this.value)" style="font-weight: 600;">
+              <option value="Lavado General">Lavado General</option>
+              <option value="Prendas Básicas">Prendas Básicas</option>
+              <option value="Hogar y Cama">Hogar y Cama</option>
+              <option value="Abrigos y Casacas">Abrigos y Casacas</option>
+              <option value="Trajes y Formal">Trajes y Formal</option>
+              <option value="Vestuario">Vestuario</option>
+              <option value="Trabajo e Institucional">Trabajo e Institucional</option>
+              <option value="Especiales">Especiales</option>
+              <option value="Otros">Otros</option>
+              <option value="__custom__">➕ Escribir otra categoría personalizada...</option>
+            </select>
+            <input type="text" id="modalCustomCategoryInput" class="form-control" placeholder="Escribe el nombre de la nueva categoría personalizada..." style="display: none; margin-top: 0.5rem;">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="modalServicePrice">Precio Predeterminado (CLP) *</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 800; color: #64748b;">$</span>
+              <input type="number" id="modalServicePrice" class="form-control" placeholder="0" min="0" step="100" required style="padding-left: 26px; font-weight: 700; font-size: 1.05rem;">
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelServiceModal" onclick="closeServiceModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSaveServiceModal" onclick="saveServiceModalSubmit()">💾 Guardar Servicio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE CONFIRMACIÓN DE ELIMINACIÓN DE SERVICIO ==================== -->
+  <div class="modal-overlay" id="deleteServiceModal">
+    <div class="modal-container" style="max-width: 460px;">
+      <div class="modal-header" style="background: #fef2f2; border-bottom: 1px solid #fee2e2;">
+        <h3 style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem;">
+          <span>⚠️ Eliminar Prenda del Catálogo</span>
+        </h3>
+        <button type="button" class="btn btn-sm btn-outline" id="btnCloseDeleteServiceModal" onclick="closeDeleteServiceModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem; text-align: center;">
+        <div style="width: 54px; height: 54px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 0.75rem;">
+          🧺
+        </div>
+        <h4 id="deleteServiceConfirmTitle" style="font-size: 1.15rem; color: #0f172a; margin-bottom: 0.4rem;">¿Eliminar prenda?</h4>
+        <p id="deleteServiceConfirmMessage" style="color: #475569; font-size: 0.95rem; line-height: 1.5;">
+          Esta prenda ya no aparecerá disponible al crear nuevas guías de recepción.
+        </p>
+      </div>
+
+      <div class="modal-footer" style="background: #f8fafc;">
+        <button type="button" class="btn btn-secondary" id="btnCancelDeleteServiceModal" onclick="closeDeleteServiceModal()">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmDeleteServiceAction" onclick="executeDeleteService()">🗑️ Sí, Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE GASTO (CREAR / EDITAR) ==================== -->
+  <div class="modal-overlay" id="expenseFormModal">
+    <div class="modal-container" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="expenseModalTitle">➕ Registrar Nuevo Gasto</h3>
+        <button type="button" class="btn btn-sm btn-outline" id="btnCloseExpenseModal" onclick="closeExpenseModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="expenseForm" autocomplete="off" onsubmit="event.preventDefault(); saveExpenseModalSubmit();">
+          <input type="hidden" id="modalExpenseId" value="">
+
+          <div class="form-group">
+            <label for="modalExpenseProductName">Nombre del Producto o Insumo *</label>
+            <input type="text" id="modalExpenseProductName" class="form-control" placeholder="Ej: Detergente Industrial 20L, Bolsas 50x70..." required>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalExpenseType">Tipo de Producto *</label>
+              <select id="modalExpenseType" class="form-control" style="font-weight: 600;" required>
+                <option value="Detergentes y Químicos">🧼 Detergentes y Químicos</option>
+                <option value="Suavizantes">🌸 Suavizantes y Aromas</option>
+                <option value="Bolsas y Empaques">🛍️ Bolsas y Empaques</option>
+                <option value="Insumos de Limpieza">🧹 Insumos de Limpieza</option>
+                <option value="Mantenimiento de Máquinas">🔧 Mantenimiento de Máquinas</option>
+                <option value="Servicios Básicos">⚡ Servicios Básicos (Luz/Agua/Gas)</option>
+                <option value="Otros">📦 Otros</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="modalExpensePrice">Precio / Monto (CLP) *</label>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 800; color: #64748b;">$</span>
+                <input type="number" id="modalExpensePrice" class="form-control" placeholder="0" min="0" step="100" required style="padding-left: 26px; font-weight: 700;">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="modalExpenseDate">Fecha de Compra *</label>
+            <input type="date" id="modalExpenseDate" class="form-control" required>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="modalExpenseNotes">Notas / Proveedor / Detalle (Opcional)</label>
+            <textarea id="modalExpenseNotes" class="form-control" rows="2" placeholder="Ej: Comprado en Distribuidora Central, Factura Nº 1234..."></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelExpenseModal" onclick="closeExpenseModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSaveExpenseModal" onclick="saveExpenseModalSubmit()">💾 Guardar Gasto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE CONFIRMACIÓN DE ELIMINACIÓN DE GASTO ==================== -->
+  <div class="modal-overlay" id="deleteExpenseModal">
+    <div class="modal-container" style="max-width: 460px;">
+      <div class="modal-header" style="background: #fef2f2; border-bottom: 1px solid #fee2e2;">
+        <h3 style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem;">
+          <span>⚠️ Eliminar Registro de Gasto</span>
+        </h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeDeleteExpenseModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem; text-align: center;">
+        <div style="width: 54px; height: 54px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 0.75rem;">
+          🗑️
+        </div>
+        <h4 id="deleteExpenseConfirmTitle" style="font-size: 1.15rem; color: #0f172a; margin-bottom: 0.4rem;">¿Eliminar gasto?</h4>
+        <p id="deleteExpenseConfirmMessage" style="color: #475569; font-size: 0.95rem; line-height: 1.5;">
+          Esta acción removerá el gasto del registro permanentemente.
+        </p>
+      </div>
+
+      <div class="modal-footer" style="background: #f8fafc;">
+        <button type="button" class="btn btn-secondary" onclick="closeDeleteExpenseModal()">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmDeleteExpenseAction" onclick="executeDeleteExpense()">🗑️ Sí, Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE GESTIÓN DE ENTREGA, SALIDA Y PAGO ==================== -->
+  <div class="modal-overlay" id="manageOrderModal">
+    <div class="modal-container" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 id="manageOrderModalTitle">⚙️ Entrega, Salida y Pago</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeManageOrderModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="manageOrderForm" autocomplete="off" onsubmit="event.preventDefault(); saveManageOrderSubmit();">
+          <input type="hidden" id="manageOrderId" value="">
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.15rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Cliente / Orden</span>
+              <div style="font-weight: 800; color: #071933; font-size: 1rem;" id="manageOrderClientLabel">-</div>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Total</span>
+              <div style="font-weight: 900; color: #0077e6; font-size: 1.15rem;" id="manageOrderTotalLabel">$0</div>
+            </div>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label for="manageOrderStatus">Estado en Taller</label>
+              <select id="manageOrderStatus" class="form-control" style="font-weight: 700;" onchange="onManageOrderStatusChange(this.value)">
+                <option value="RECIBIDO">📥 Recibido</option>
+                <option value="EN_LAVADO">🧼 En Lavado</option>
+                <option value="LISTO">✅ Listo p/Retiro</option>
+                <option value="ENTREGADO">📦 Entregado (Sale del local)</option>
+                <option value="CANCELADO">❌ Cancelado</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="manageOrderDeliveryDate">📅 Fecha Entrega Estimada</label>
+              <input type="date" id="manageOrderDeliveryDate" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.85rem; border-radius: 8px;">
+            <label for="manageOrderExitDate" style="color: #166534;">🚪 Día que Sale del Local (Salida Real)</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem;">
+              <input type="date" id="manageOrderExitDate" class="form-control">
+              <button type="button" class="btn btn-sm btn-success" onclick="setManageOrderExitToday()" style="white-space: nowrap; height: 38px;">
+                📅 Hoy
+              </button>
+              <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('manageOrderExitDate').value = ''" style="white-space: nowrap; height: 38px;" title="Aún en el local">
+                Limpiar
+              </button>
+            </div>
+            <small style="color: #15803d; display: block; margin-top: 0.35rem;">
+              Se registra automáticamente al marcar como <strong>Entregado</strong> o puedes fijar el día exacto aquí.
+            </small>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="manageOrderPaymentStatus">Estado de Pago</label>
+              <select id="manageOrderPaymentStatus" class="form-control" style="font-weight: 700;">
+                <option value="PENDIENTE">⏳ Pendiente</option>
+                <option value="PAGADO">✅ Pagado</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="manageOrderPaymentMethod">Medio de Pago</label>
+              <select id="manageOrderPaymentMethod" class="form-control" style="font-weight: 700;">
+                <option value="EFECTIVO">💵 Efectivo</option>
+                <option value="DEBITO">💳 Débito</option>
+                <option value="CREDITO">💳 Crédito</option>
+                <option value="TRANSFERENCIA">🏦 Transferencia</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeManageOrderModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="saveManageOrderSubmit()">💾 Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE USUARIO (CREAR / EDITAR) ==================== -->
+  <div class="modal-overlay" id="userFormModal">
+    <div class="modal-container" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="userModalTitle">➕ Nuevo Usuario</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeUserModal()">✕</button>
+      </div>
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="userForm" autocomplete="off" onsubmit="event.preventDefault(); saveUserModalSubmit();">
+          <input type="hidden" id="modalUserId" value="">
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalUserUsername">Nombre de Usuario *</label>
+              <input type="text" id="modalUserUsername" class="form-control" placeholder="ej: cajero2" required>
+            </div>
+            <div class="form-group">
+              <label for="modalUserRole">Rol Asignado *</label>
+              <select id="modalUserRole" class="form-control" style="font-weight: 700;" required></select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="modalUserFullName">Nombre Completo *</label>
+            <input type="text" id="modalUserFullName" class="form-control" placeholder="Ej: María Pérez" required>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalUserEmail">Correo Electrónico</label>
+              <input type="email" id="modalUserEmail" class="form-control" placeholder="usuario@correo.cl">
+            </div>
+            <div class="form-group">
+              <label for="modalUserPassword" id="modalUserPasswordLabel">Contraseña *</label>
+              <input type="password" id="modalUserPassword" class="form-control" placeholder="Mínimo 4 caracteres">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 700;">
+              <input type="checkbox" id="modalUserActive" checked> Usuario Activo (puede iniciar sesión)
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="saveUserModalSubmit()">💾 Guardar Usuario</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE ROL Y PERMISOS (CREAR / EDITAR) ==================== -->
+  <div class="modal-overlay" id="roleFormModal">
+    <div class="modal-container" style="max-width: 720px;">
+      <div class="modal-header">
+        <h3 id="roleModalTitle">🛡️ Configurar Rol y Permisos</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeRoleModal()">✕</button>
+      </div>
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="roleForm" autocomplete="off" onsubmit="event.preventDefault(); saveRoleModalSubmit();">
+          <input type="hidden" id="modalRoleId" value="">
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalRoleName">Nombre del Rol *</label>
+              <input type="text" id="modalRoleName" class="form-control" placeholder="Ej: Cajero, Supervisor, Operador..." required>
+            </div>
+            <div class="form-group">
+              <label for="modalRoleDescription">Descripción</label>
+              <input type="text" id="modalRoleDescription" class="form-control" placeholder="Breve descripción de funciones">
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+            <label style="font-weight: 800; color: var(--primary-navy); margin: 0;">Permisos del Rol</label>
+            <div style="display: flex; gap: 0.4rem;">
+              <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRolePermissions(true)">✅ Marcar Todos</button>
+              <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllRolePermissions(false)">⬜ Quitar Todos</button>
+            </div>
+          </div>
+
+          <div id="rolePermissionsGrid" class="perm-groups-container">
+            <!-- Checkbox groups injected dynamically from /api/permissions-catalog -->
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeRoleModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="saveRoleModalSubmit()">💾 Guardar Rol y Permisos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE LAVANDERÍA SAAS (CREAR / EDITAR) ==================== -->
+  <div class="modal-overlay" id="laundryFormModal">
+    <div class="modal-container" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 id="laundryModalTitle">🏢 Nueva Lavandería (SaaS)</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeLaundryModal()">✕</button>
+      </div>
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="laundryForm" autocomplete="off" onsubmit="event.preventDefault(); saveLaundryModalSubmit();">
+          <input type="hidden" id="modalLaundryId" value="">
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalLaundryName">Nombre de la Lavandería *</label>
+              <input type="text" id="modalLaundryName" class="form-control" placeholder="Ej: Lavandería Express Los Ángeles" required>
+            </div>
+            <div class="form-group">
+              <label for="modalLaundryRut">RUT Empresa (sin puntos)</label>
+              <input type="text" id="modalLaundryRut" class="form-control" placeholder="76123456-7" style="font-family: monospace; font-weight: 700;">
+            </div>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalLaundryPlan">Plan Contratado *</label>
+              <select id="modalLaundryPlan" class="form-control" style="font-weight: 700;" required></select>
+            </div>
+            <div class="form-group">
+              <label for="modalLaundryPayDate">Fecha Último Pago</label>
+              <input type="date" id="modalLaundryPayDate" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="modalLaundryPhone">Teléfono / WhatsApp</label>
+              <input type="tel" id="modalLaundryPhone" class="form-control" placeholder="+569 1234 5678">
+            </div>
+          </div>
+
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalLaundryAddress">Dirección Comercial</label>
+              <input type="text" id="modalLaundryAddress" class="form-control" placeholder="Calle Principal 123, Ciudad">
+            </div>
+            <div class="form-group">
+              <label for="modalLaundrySlogan">Slogan</label>
+              <input type="text" id="modalLaundrySlogan" class="form-control" placeholder="Lavado de Alta Energía">
+            </div>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.85rem;">
+            <label style="display: inline-flex; align-items: center; gap: 0.55rem; cursor: pointer; font-weight: 700; color: #166534;">
+              <input type="checkbox" id="modalLaundryTrial">
+              <span>🎁 Habilitar Periodo de Prueba Gratuito (14 días)</span>
+            </label>
+          </div>
+
+          <div id="laundryInitialAdminBox" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 1rem; margin-bottom: 0;">
+            <div style="font-weight: 800; color: #0369a1; margin-bottom: 0.55rem; font-size: 0.9rem;" id="laundryAdminSectionTitle">
+              👤 Administrador de la Sede (Acceso inicial / Correo / Clave)
+            </div>
+            <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.65rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="modalLaundryAdminName">Nombre Administrador</label>
+                <input type="text" id="modalLaundryAdminName" class="form-control" placeholder="Nombre completo">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="modalLaundryAdminEmail">Correo Administrador</label>
+                <input type="email" id="modalLaundryAdminEmail" class="form-control" placeholder="admin@lavanderia.cl">
+              </div>
+            </div>
+            <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+              <div class="form-group" style="margin-bottom: 0;" id="modalLaundryAdminUsernameWrap">
+                <label for="modalLaundryAdminUsername">Usuario Login</label>
+                <input type="text" id="modalLaundryAdminUsername" class="form-control" placeholder="ej: admin_sede">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="modalLaundryAdminPassword" id="modalLaundryAdminPasswordLabel">Contraseña</label>
+                <div style="display: flex; gap: 0.4rem;">
+                  <input type="text" id="modalLaundryAdminPassword" class="form-control" placeholder="Mínimo 4 caracteres">
+                  <button type="button" class="btn btn-sm btn-outline" onclick="generateRandomAdminPass()" title="Generar clave aleatoria">🎲</button>
+                </div>
+              </div>
+            </div>
+            <small style="display: block; margin-top: 0.45rem; color: #0284c7;">
+              Al crear la sede se cargan automáticamente sus servicios base y roles iniciales (Administrador, Cajero y Operador Taller).
+            </small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeLaundryModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="saveLaundryModalSubmit()">💾 Guardar Lavandería</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DÍAS DE GRACIA SAAS ==================== -->
+  <div class="modal-overlay" id="graceDaysModal">
+    <div class="modal-container" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3>⏱️ Otorgar Días de Gracia</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeGraceModal()">✕</button>
+      </div>
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <div style="margin-bottom: 0.9rem; font-weight: 800; color: var(--primary-navy);" id="graceBizTitle">-</div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; margin-bottom: 1rem;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.75rem; border-radius: 8px;">
+            <small style="color: #64748b;">Vigencia Actual</small>
+            <div style="font-weight: 800;" id="graceCurrentUntil">-</div>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.75rem; border-radius: 8px;">
+            <small style="color: #64748b;">Días Restantes</small>
+            <div style="font-weight: 800;" id="graceDaysLeft">0 días</div>
+          </div>
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.75rem; border-radius: 8px;">
+            <small style="color: #166534;">Gracia Acumulada</small>
+            <div style="font-weight: 800; color: #15803d;" id="graceTotalGranted">0 días</div>
+          </div>
+        </div>
+        <form id="graceDaysForm" onsubmit="event.preventDefault(); grantGraceDaysSubmit();">
+          <input type="hidden" id="graceLaundryId" value="">
+          <div class="form-group">
+            <label for="graceDaysInput">Cantidad de Días (1 a 90) *</label>
+            <input type="number" id="graceDaysInput" class="form-control" min="1" max="90" value="3" required>
+          </div>
+          <div class="form-group">
+            <label for="graceReasonInput">Motivo de Compensación (Auditado) *</label>
+            <textarea id="graceReasonInput" class="form-control" rows="2" required>Compensación por interrupción del servicio</textarea>
+          </div>
+        </form>
+        <div id="graceHistoryWrap" style="margin-top: 0.75rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeGraceModal()">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="grantGraceDaysSubmit()">⏱️ Otorgar Días de Gracia</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL ELIMINACIÓN PERMANENTE LAVANDERÍA (PASSWORD) ==================== -->
+  <div class="modal-overlay" id="deleteLaundryModal">
+    <div class="modal-container" style="max-width: 480px;">
+      <div class="modal-header" style="background: #fef2f2; border-bottom: 1px solid #fee2e2;">
+        <h3 style="color: #991b1b;">⚠️ Eliminar Lavandería Permanentemente</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeDeleteLaundryModal()">✕</button>
+      </div>
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <input type="hidden" id="deleteLaundryId" value="">
+        <p style="color: #991b1b; font-weight: 700; margin-bottom: 0.65rem;" id="deleteLaundryMsg">Esta acción eliminará la sede y todos sus datos.</p>
+        <p style="color: #475569; font-size: 0.88rem; margin-bottom: 1rem;">
+          Para confirmar esta acción irreversible, ingresa tu contraseña de Super Administrador SaaS:
+        </p>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="deleteLaundryPassword">🔑 Tu Contraseña de SuperAdmin *</label>
+          <input type="password" id="deleteLaundryPassword" class="form-control" placeholder="Ingresa tu contraseña...">
+        </div>
+      </div>
+      <div class="modal-footer" style="background: #f8fafc;">
+        <button type="button" class="btn btn-secondary" onclick="closeDeleteLaundryModal()">Cancelar</button>
+        <button type="button" class="btn btn-danger" onclick="confirmDeleteLaundrySubmit()">🗑️ Eliminar Definitivamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL PLAN SAAS (CREAR / EDITAR) ==================== -->
+  <div class="modal-overlay" id="planFormModal">
+    <div class="modal-container" style="max-width: 660px;">
+      <div class="modal-header">
+        <h3 id="planModalTitle">💳 Nuevo Plan de Suscripción</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closePlanModal()">✕</button>
+      </div>
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="planForm" onsubmit="event.preventDefault(); savePlanModalSubmit();">
+          <input type="hidden" id="modalPlanId" value="">
+          <div class="fields-grid" style="grid-template-columns: 1.5fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalPlanName">Nombre del Plan *</label>
+              <input type="text" id="modalPlanName" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="modalPlanPrice">Precio Mensual (CLP) *</label>
+              <input type="number" id="modalPlanPrice" class="form-control" min="0" step="100" required>
+            </div>
+          </div>
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="modalPlanLimitUsers">Límite Usuarios (0 = ∞)</label>
+              <input type="number" id="modalPlanLimitUsers" class="form-control" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="modalPlanLimitServices">Límite Prendas (0 = ∞)</label>
+              <input type="number" id="modalPlanLimitServices" class="form-control" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="modalPlanSupport">Nivel Soporte</label>
+              <select id="modalPlanSupport" class="form-control">
+                <option value="normal">Normal</option>
+                <option value="preferred">Preferente</option>
+                <option value="priority">Prioritario</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="modalPlanDescription">Descripción</label>
+            <input type="text" id="modalPlanDescription" class="form-control">
+          </div>
+          <label style="font-weight: 800; color: var(--primary-navy); display: block; margin-bottom: 0.45rem;">Módulos Habilitados en este Plan</label>
+          <div id="planMenusGrid" class="perm-groups-container"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closePlanModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="savePlanModalSubmit()">💾 Guardar Plan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL SUPER ADMINISTRADOR SAAS ==================== -->
+  <div class="modal-overlay" id="saasAdminModal">
+    <div class="modal-container" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 id="saasAdminModalTitle">👑 Nuevo Super Administrador SaaS</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeSaasAdminModal()">✕</button>
+      </div>
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="saasAdminForm" onsubmit="event.preventDefault(); saveSaasAdminSubmit();">
+          <input type="hidden" id="modalSaasAdminId" value="">
+          <div class="form-group">
+            <label for="modalSaasAdminUsername">Usuario *</label>
+            <input type="text" id="modalSaasAdminUsername" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="modalSaasAdminFullName">Nombre Completo *</label>
+            <input type="text" id="modalSaasAdminFullName" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="modalSaasAdminEmail">Correo Electrónico</label>
+            <input type="email" id="modalSaasAdminEmail" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="modalSaasAdminPassword" id="modalSaasAdminPasswordLabel">Contraseña *</label>
+            <input type="password" id="modalSaasAdminPassword" class="form-control">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700;">
+              <input type="checkbox" id="modalSaasAdminActive" checked> Cuenta Activa
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeSaasAdminModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="saveSaasAdminSubmit()">💾 Guardar Cuenta SaaS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODALES DE SOPORTE SAAS ==================== -->
+  <div class="modal-overlay" id="supportCreateModal">
+    <div class="modal-container" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>🎫 Abrir Ticket de Soporte SaaS</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeSupportCreateModal()">✕</button>
+      </div>
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <form id="supportCreateForm" onsubmit="event.preventDefault(); submitNewSupportTicket();">
+          <div class="form-group">
+            <label for="supportSubjectInput">Asunto *</label>
+            <input type="text" id="supportSubjectInput" class="form-control" placeholder="Ej: Ampliar límite de usuarios, duda sobre impresión..." required>
+          </div>
+          <div class="fields-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+            <div class="form-group">
+              <label for="supportCategorySelect">Categoría</label>
+              <select id="supportCategorySelect" class="form-control">
+                <option value="ASSISTANCE">Asistencia Técnica</option>
+                <option value="BILLING">Plan / Suscripción</option>
+                <option value="SYSTEM_ERROR">Error del Sistema</option>
+                <option value="FEATURE">Sugerencia / Mejora</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="supportPrioritySelect">Prioridad</label>
+              <select id="supportPrioritySelect" class="form-control">
+                <option value="NORMAL">Normal</option>
+                <option value="HIGH">Alta</option>
+                <option value="URGENT">Urgente</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="supportMessageInput">Mensaje *</label>
+            <textarea id="supportMessageInput" class="form-control" rows="4" placeholder="Describe tu solicitud (no es necesario enviar datos privados de clientes)." required></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeSupportCreateModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="submitNewSupportTicket()">📤 Enviar Ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="supportTicketModal">
+    <div class="modal-container" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3 id="supportTicketModalTitle">🎧 Ticket de Soporte</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeSupportTicketModal()">✕</button>
+      </div>
+      <div class="modal-body" style="background: #ffffff; padding: 1.5rem;">
+        <input type="hidden" id="activeSupportTicketId" value="">
+        <div id="supportTicketMetaBar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.85rem;"></div>
+        <div id="supportMessagesBox" class="support-messages-box"></div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="supportReplyInput">Responder</label>
+          <textarea id="supportReplyInput" class="form-control" rows="2" placeholder="Escribe una respuesta..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeSupportTicketModal()">Cerrar</button>
+        <button type="button" class="btn btn-primary" onclick="sendSupportReply()">💬 Enviar Respuesta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

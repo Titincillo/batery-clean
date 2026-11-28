@@ -15,7 +15,23 @@
   to = "/.netlify/functions/api/api/:splat"
   status = 200
 
-# SPA Frontend fallback: serve index.html for all other routes
+# App POS / Login routes
+[[redirects]]
+  from = "/app"
+  to = "/app.html"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/app.html"
+  status = 200
+
+[[redirects]]
+  from = "/landing"
+  to = "/index.html"
+  status = 200
+
+# SPA Frontend fallback: serve index.html (Landing) for all other routes
 [[redirects]]
   from = "/*"
   to = "/index.html"

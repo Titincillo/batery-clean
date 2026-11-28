@@ -6,8 +6,176 @@ const state = {
   selectedItems: {}, // service_id or name -> { name, unit_price, quantity }
   config: null,
   activeTab: 'nueva-guia',
-  networkInfo: null
+  networkInfo: null,
+  authUser: null,
+  permissions: new Set(),
+  laundry: null,
+  plan: null,
+  permissionsCatalog: [],
+  users: [],
+  roles: [],
+  saasLaundries: [],
+  saasPlans: [],
+  saasSummary: null,
+  saasAdmins: [],
+  saasAuditLogs: [],
+  saasAgreements: [],
+  supportTickets: [],
+  supportUnreadCount: 0,
+  settingsDraftLogo: null,
+  usersRolesSubTab: 'users',
+  saasBusinessesSubTab: 'businesses',
+  saasPlatformSubTab: 'plans'
 };
+
+function getActiveLogoUrl() {
+  if (state.authUser?.is_superadmin) return '/assets/lavanderia_oficial.jpeg';
+  const custom = state.laundry?.logo_url || state.config?.logo_url || '';
+  return custom || '/assets/lavanderia_oficial.jpeg';
+}
+
+function hasPerm(permExpr) {
+  if (!state.authUser) return false;
+  const isSuper = Boolean(state.authUser.is_superadmin);
+  if (!permExpr) return !isSuper;
+  const tokens = String(permExpr).split('|').map(p => p.trim());
+  if (isSuper) {
+    // SuperAdmin SaaS ONLY accesses __superadmin__ tabs (strict privacy: zero tenant sales/ops)
+    return tokens.includes('__superadmin__');
+  }
+  return tokens.some(p => p !== '__superadmin__' && state.permissions.has(p));
+}
+
+function syncHeaderAndDrawerFromAuth() {
+  const user = state.authUser;
+  const isSuper = Boolean(user?.is_superadmin);
+  const laundry = state.laundry || {};
+  const nameText = isSuper ? 'LAVANDERÍA SaaS' : (laundry.name || 'LAVANDERÍA');
+  const sloganText = isSuper
+    ? '⚡ Consola Global Super Usuario ⚡'
+    : (laundry.slogan ? `⚡ ${laundry.slogan} ⚡` : '⚡ Gestión de Lavandería ⚡');
+
+  const brandEl = document.getElementById('headerBrandName');
+  if (brandEl) {
+    const words = nameText.trim().split(/\s+/);
+    if (words.length > 1) {
+      const last = words.pop();
+      brandEl.innerHTML = `${words.join(' ')} <span class="clean-accent">${last}</span>`;
+    } else {
+      brandEl.innerHTML = `${nameText}`;
+    }
+  }
+  const sloganEl = document.getElementById('headerBrandSlogan');
+  if (sloganEl) sloganEl.textContent = sloganText;
+
+  const addrEl = document.getElementById('headerLaundryAddress');
+  if (addrEl) {
+    addrEl.textContent = isSuper
+      ? '☁️ Plataforma Global SaaS'
+      : `📍 ${laundry.address || 'Sin dirección configurada'}`;
+  }
+
+  const phoneEl = document.getElementById('headerLaundryPhone');
+  if (phoneEl) {
+    phoneEl.textContent = isSuper
+      ? '🏢 Modo Multi-Lavandería'
+      : `📞 ${laundry.phone || 'Sin teléfono'}`;
+  }
+
+  const planBadge = document.getElementById('headerPlanBadge');
+  const planBadgeTxt = document.getElementById('headerPlanBadgeText');
+  if (planBadge && planBadgeTxt) {
+    if (!isSuper && state.plan) {
+      const days = laundry.daysRemaining !== undefined ? `${laundry.daysRemaining}d` : '';
+      planBadgeTxt.textContent = `💳 ${state.plan.name}${days ? ` (${days})` : ''}`;
+      planBadge.style.display = 'inline-flex';
+    } else {
+      planBadge.style.display = 'none';
+    }
+  }
+
+  const drawerBrand = document.getElementById('drawerBrandName');
+  if (drawerBrand) drawerBrand.textContent = nameText;
+  const drawerLaundryLbl = document.getElementById('drawerActiveLaundryLabel');
+  if (drawerLaundryLbl) drawerLaundryLbl.textContent = isSuper ? 'Plataforma Global SaaS' : (laundry.address || 'Lavandería Activa');
+  const usersSectionLbl = document.getElementById('usersSectionLaundryName');
+  if (usersSectionLbl) usersSectionLbl.textContent = nameText;
+
+  if (user) {
+    const initials = (user.full_name || user.username || 'U').trim().charAt(0).toUpperCase();
+    const avatarEl = document.getElementById('drawerUserAvatar');
+    if (avatarEl) avatarEl.textContent = initials;
+    const dName = document.getElementById('drawerUserFullName');
+    if (dName) dName.textContent = user.full_name;
+    const dUser = document.getElementById('drawerUserUsername');
+    if (dUser) dUser.textContent = `@${user.username}`;
+    const dRole = document.getElementById('drawerUserRoleBadge');
+    if (dRole) dRole.textContent = user.role_name;
+
+    const hName = document.getElementById('headerUserNameLabel');
+    if (hName) hName.textContent = user.full_name;
+    const hRole = document.getElementById('headerUserRoleLabel');
+    if (hRole) hRole.textContent = user.role_name;
+  }
+
+  const unread = Number(state.supportUnreadCount || 0);
+  ['supportNavBadge', 'drawerSupportBadge'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) {
+      b.textContent = unread;
+      b.style.display = unread > 0 ? 'inline-block' : 'none';
+    }
+  });
+
+  // Sync active laundry custom logo across all app views
+  const activeLogo = getActiveLogoUrl();
+  document.querySelectorAll('.tenant-logo-img').forEach(img => {
+    if (img.getAttribute('src') !== activeLogo) {
+      img.setAttribute('src', activeLogo);
+    }
+  });
+}
+
+function applyPermissionVisibility() {
+  document.querySelectorAll('[data-perm]').forEach(el => {
+    const allowed = hasPerm(el.getAttribute('data-perm'));
+    el.style.display = allowed ? '' : 'none';
+  });
+
+  // Check if active tab is still allowed; if not, navigate to first allowed tab
+  const currentTabBtn = document.querySelector(`.nav-tab[data-target="${state.activeTab}"]`);
+  const currentAllowed = currentTabBtn && hasPerm(currentTabBtn.getAttribute('data-perm'));
+  if (!currentAllowed) {
+    const firstAllowed = Array.from(document.querySelectorAll('.nav-tab')).find(btn => hasPerm(btn.getAttribute('data-perm')));
+    if (firstAllowed) {
+      navigateToTab(firstAllowed.dataset.target);
+    }
+  }
+}
+
+function handleUnauthorizedSession() {
+  state.authUser = null;
+  state.permissions = new Set();
+  state.laundry = null;
+  document.body.classList.remove('authenticated', 'auth-checking');
+  closeDrawer();
+}
+
+function openDrawer() {
+  document.getElementById('appDrawer')?.classList.add('open');
+  document.getElementById('drawerBackdrop')?.classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('appDrawer')?.classList.remove('open');
+  document.getElementById('drawerBackdrop')?.classList.remove('open');
+}
+
+function toggleDrawer() {
+  const drawer = document.getElementById('appDrawer');
+  if (drawer && drawer.classList.contains('open')) closeDrawer();
+  else openDrawer();
+}
 
 // Format currency in Chilean Pesos (CLP)
 function formatMoney(amount) {
@@ -44,7 +212,7 @@ function sanitizeRut(val) {
 
 // Wire RUT inputs so dots are stripped immediately upon typing or pasting
 function setupRutInputs() {
-  const rutIds = ['clientRut', 'modalClientRut'];
+  const rutIds = ['clientRut', 'modalClientRut', 'settingsRut', 'modalLaundryRut'];
   rutIds.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -113,6 +281,11 @@ function showToast(message, type = 'success') {
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', async () => {
+  // Tag tenant logos so per-laundry logos update dynamically across the whole app
+  document.querySelectorAll('.app-header img, .app-drawer img, main img').forEach(img => {
+    if (!img.classList.contains('auth-logo')) img.classList.add('tenant-logo-img');
+  });
+
   // 1. Setup UI & Event Listeners first so buttons always work immediately
   setupNavigation();
   setupDates();
@@ -123,17 +296,74 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupClientModals();
   setupServiceModals();
 
-  // 2. Load data from backend gracefully
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 1024) closeDrawer();
+  });
+
+  // 2. Authenticate session before loading tenant-scoped data
+  await checkAuthAndInit();
+});
+
+async function checkAuthAndInit() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) {
+      handleUnauthorizedSession();
+      return;
+    }
+    const payload = await res.json();
+    await applyAuthSession(payload);
+  } catch (err) {
+    console.warn('Error verificando sesión:', err);
+    handleUnauthorizedSession();
+  } finally {
+    document.body.classList.remove('auth-checking');
+  }
+}
+
+async function applyAuthSession(payload) {
+  state.authUser = payload.user;
+  state.permissions = new Set(payload.permissions || []);
+  state.laundry = payload.laundry || null;
+  state.plan = payload.plan || null;
+  state.supportUnreadCount = payload.supportUnreadCount || 0;
+  state.config = payload.laundry ? { ...payload.laundry } : null;
+
+  document.body.classList.add('authenticated');
+  document.body.classList.remove('auth-checking');
+
+  syncHeaderAndDrawerFromAuth();
+  applyPermissionVisibility();
+
+  await loadInitialTenantData();
+}
+
+async function loadInitialTenantData() {
+  if (state.authUser?.is_superadmin) {
+    // SuperAdmin NEVER calls tenant /api/config, /api/services or /api/stats!
+    if (state.activeTab === 'saas-dashboard') await loadSaasDashboard();
+    else if (state.activeTab === 'saas-businesses') await loadSaasDashboard();
+    else if (state.activeTab === 'saas-platform') await loadSaasPlatform();
+    else if (state.activeTab === 'soporte') await loadSupportTickets();
+    return;
+  }
+
   try {
     await loadConfig();
   } catch (err) {
     console.warn('No se pudo cargar la configuración:', err);
   }
 
-  try {
-    await loadServices();
-  } catch (err) {
-    console.warn('No se pudieron cargar los servicios:', err);
+  if (hasPerm('view_catalog|view_reception|create_orders')) {
+    try {
+      await loadServices();
+    } catch (err) {
+      console.warn('No se pudieron cargar los servicios:', err);
+    }
   }
 
   try {
@@ -141,13 +371,77 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     console.warn('No se pudieron cargar las estadísticas:', err);
   }
-});
+
+  if (state.activeTab === 'pedidos-list' && hasPerm('view_orders')) await loadOrders();
+  else if (state.activeTab === 'clientes-list' && hasPerm('view_clients')) await loadClients();
+  else if (state.activeTab === 'precios-catalog' && hasPerm('view_catalog')) renderPricesCatalog();
+  else if (state.activeTab === 'gastos-list' && hasPerm('view_expenses')) await loadExpenses();
+  else if (state.activeTab === 'reportes-ventas' && hasPerm('view_reports')) await loadSalesReport();
+  else if (state.activeTab === 'usuarios-roles' && hasPerm('manage_users|manage_roles')) await loadUsersAndRoles();
+  else if (state.activeTab === 'soporte' && hasPerm('manage_users')) await loadSupportTickets();
+}
 
 // Explicit global scope bindings for inline HTML handlers
+window.toggleDrawer = toggleDrawer;
+window.openDrawer = openDrawer;
+window.closeDrawer = closeDrawer;
+window.navigateToTab = navigateToTab;
+window.fillDemoCredentials = fillDemoCredentials;
+window.submitLoginForm = submitLoginForm;
+window.logoutUser = logoutUser;
+window.switchUsersRolesSubTab = switchUsersRolesSubTab;
+window.openUserModal = openUserModal;
+window.openUserModalById = openUserModalById;
+window.closeUserModal = closeUserModal;
+window.saveUserModalSubmit = saveUserModalSubmit;
+window.deleteUserById = deleteUserById;
+window.openRoleModal = openRoleModal;
+window.openRoleModalById = openRoleModalById;
+window.closeRoleModal = closeRoleModal;
+window.toggleAllRolePermissions = toggleAllRolePermissions;
+window.saveRoleModalSubmit = saveRoleModalSubmit;
+window.deleteRoleById = deleteRoleById;
+window.openLaundryModal = openLaundryModal;
+window.openLaundryModalById = openLaundryModalById;
+window.closeLaundryModal = closeLaundryModal;
+window.saveLaundryModalSubmit = saveLaundryModalSubmit;
+window.generateRandomAdminPass = generateRandomAdminPass;
+window.switchSaasBusinessesSubTab = switchSaasBusinessesSubTab;
+window.switchSaasPlatformSubTab = switchSaasPlatformSubTab;
+window.renderSaasBusinessesTable = renderSaasBusinessesTable;
+window.clearSaasBizFilters = clearSaasBizFilters;
+window.toggleLaundryStatus = toggleLaundryStatus;
+window.openGraceModalById = openGraceModalById;
+window.closeGraceModal = closeGraceModal;
+window.grantGraceDaysSubmit = grantGraceDaysSubmit;
+window.openDeleteLaundryModalById = openDeleteLaundryModalById;
+window.closeDeleteLaundryModal = closeDeleteLaundryModal;
+window.confirmDeleteLaundrySubmit = confirmDeleteLaundrySubmit;
+window.renderSaasAuditTable = renderSaasAuditTable;
+window.openPlanModal = openPlanModal;
+window.openPlanModalById = openPlanModalById;
+window.closePlanModal = closePlanModal;
+window.savePlanModalSubmit = savePlanModalSubmit;
+window.deletePlanById = deletePlanById;
+window.openSaasAdminModal = openSaasAdminModal;
+window.openSaasAdminModalById = openSaasAdminModalById;
+window.closeSaasAdminModal = closeSaasAdminModal;
+window.saveSaasAdminSubmit = saveSaasAdminSubmit;
+window.publishAgreementSubmit = publishAgreementSubmit;
+window.openSupportCreateModal = openSupportCreateModal;
+window.closeSupportCreateModal = closeSupportCreateModal;
+window.submitNewSupportTicket = submitNewSupportTicket;
+window.openSupportTicketById = openSupportTicketById;
+window.closeSupportTicketModal = closeSupportTicketModal;
+window.sendSupportReply = sendSupportReply;
+window.updateSupportTicketStatus = updateSupportTicketStatus;
 window.toggleClientColumn = toggleClientColumn;
 window.toggleClientsGridVisibility = toggleClientsGridVisibility;
 window.loadClients = loadClients;
 window.loadOrders = loadOrders;
+window.onOrdersFilterChange = onOrdersFilterChange;
+window.onOrdersLimitSelectChange = onOrdersLimitSelectChange;
+window.changeOrdersPage = changeOrdersPage;
 window.openClientModal = openClientModal;
 window.openManageOrderModalById = openManageOrderModalById;
 window.closeManageOrderModal = closeManageOrderModal;
@@ -186,33 +480,59 @@ window.syncDetailPaymentMethodFilter = syncDetailPaymentMethodFilter;
 window.openWhatsAppDebt = openWhatsAppDebt;
 window.openWhatsAppReady = openWhatsAppReady;
 window.filterTableByOverdue = filterTableByOverdue;
+window.handleSettingsLogoFileChange = handleSettingsLogoFileChange;
+window.resetLaundryLogoToDefault = resetLaundryLogoToDefault;
+window.saveLaundrySettingsSubmit = saveLaundrySettingsSubmit;
+
+function navigateToTab(targetId) {
+  const tabs = document.querySelectorAll('.nav-tab');
+  const drawerLinks = document.querySelectorAll('.drawer-link');
+  const targetTabEl = document.querySelector(`.nav-tab[data-target="${targetId}"]`);
+  if (targetTabEl && !hasPerm(targetTabEl.getAttribute('data-perm'))) {
+    showToast('No tienes permisos para acceder a esta sección.', 'error');
+    return;
+  }
+
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.target === targetId));
+  drawerLinks.forEach(d => d.classList.toggle('active', d.dataset.target === targetId));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+  const targetPane = document.getElementById(targetId);
+  if (targetPane) {
+    targetPane.classList.add('active');
+    state.activeTab = targetId;
+
+    if (targetId === 'pedidos-list') {
+      loadOrders();
+    } else if (targetId === 'clientes-list') {
+      loadClients();
+    } else if (targetId === 'precios-catalog') {
+      renderPricesCatalog();
+    } else if (targetId === 'gastos-list') {
+      loadExpenses();
+    } else if (targetId === 'reportes-ventas') {
+      loadSalesReport();
+    } else if (targetId === 'usuarios-roles') {
+      loadUsersAndRoles();
+    } else if (targetId === 'saas-dashboard' || targetId === 'saas-businesses') {
+      loadSaasDashboard();
+    } else if (targetId === 'saas-platform') {
+      loadSaasPlatform();
+    } else if (targetId === 'soporte') {
+      loadSupportTickets();
+    } else if (targetId === 'ajustes') {
+      populateLaundrySettingsForm();
+    }
+  }
+
+  closeDrawer();
+}
 
 // Setup Navigation Tabs
 function setupNavigation() {
-  const tabs = document.querySelectorAll('.nav-tab');
-  tabs.forEach(tab => {
+  document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-
-      tab.classList.add('active');
-      const targetPane = document.getElementById(tab.dataset.target);
-      if (targetPane) {
-        targetPane.classList.add('active');
-        state.activeTab = tab.dataset.target;
-
-        if (state.activeTab === 'pedidos-list') {
-          loadOrders();
-        } else if (state.activeTab === 'clientes-list') {
-          loadClients();
-        } else if (state.activeTab === 'precios-catalog') {
-          renderPricesCatalog();
-        } else if (state.activeTab === 'gastos-list') {
-          loadExpenses();
-        } else if (state.activeTab === 'reportes-ventas') {
-          loadSalesReport();
-        }
-      }
+      navigateToTab(tab.dataset.target);
     });
   });
 }
@@ -640,8 +960,54 @@ function resetOrderForm() {
 }
 
 // ----------------- ORDERS MANAGEMENT (TAB 2) -----------------
+state.ordersPage = 1;
+state.ordersTotalPages = 1;
+
+function getOrdersLimitParam() {
+  const select = document.getElementById('orderLimitSelect');
+  const val = select ? select.value : '15';
+  if (val === 'CUSTOM') {
+    const customInput = document.getElementById('orderCustomLimitInput');
+    const num = parseInt(customInput?.value, 10);
+    return (num > 0) ? String(num) : '15';
+  }
+  return val || '15';
+}
+
+function onOrdersLimitSelectChange(val) {
+  const customInput = document.getElementById('orderCustomLimitInput');
+  if (customInput) {
+    if (val === 'CUSTOM') {
+      customInput.style.display = 'inline-block';
+      customInput.focus();
+    } else {
+      customInput.style.display = 'none';
+    }
+  }
+  state.ordersPage = 1;
+  loadOrders();
+}
+
+function onOrdersFilterChange() {
+  state.ordersPage = 1;
+  loadOrders();
+}
+
+function changeOrdersPage(delta) {
+  const next = state.ordersPage + delta;
+  if (next < 1 || next > state.ordersTotalPages) return;
+  state.ordersPage = next;
+  loadOrders();
+}
+
 async function loadOrders() {
   const container = document.getElementById('ordersTableBody');
+  const infoEl = document.getElementById('ordersPaginationInfo');
+  const footerEl = document.getElementById('ordersPaginationFooter');
+  const pageLabelEl = document.getElementById('ordersPageLabel');
+  const prevBtn = document.getElementById('btnOrdersPrevPage');
+  const nextBtn = document.getElementById('btnOrdersNextPage');
+
   if (!container) return;
 
   container.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem;">Cargando pedidos...</td></tr>';
@@ -649,14 +1015,42 @@ async function loadOrders() {
   const statusFilter = document.getElementById('orderStatusFilter')?.value || 'TODOS';
   const methodFilter = document.getElementById('orderPaymentMethodFilter')?.value || 'TODOS';
   const searchFilter = document.getElementById('orderSearchInput')?.value || '';
+  const limitParam = getOrdersLimitParam();
 
   try {
-    let url = `/api/orders?status=${encodeURIComponent(statusFilter)}`;
+    let url = `/api/orders?paginated=1&page=${state.ordersPage}&limit=${encodeURIComponent(limitParam)}&status=${encodeURIComponent(statusFilter)}`;
     if (methodFilter && methodFilter !== 'TODOS') url += `&paymentMethod=${encodeURIComponent(methodFilter)}`;
     if (searchFilter) url += `&search=${encodeURIComponent(searchFilter)}`;
 
     const res = await fetch(url);
-    const orders = await res.json();
+    const data = await res.json();
+    const orders = Array.isArray(data) ? data : (data.orders || []);
+    const total = Array.isArray(data) ? orders.length : (data.total || 0);
+    const page = Array.isArray(data) ? 1 : (data.page || 1);
+    const totalPages = Array.isArray(data) ? 1 : (data.totalPages || 1);
+    const limitUsed = Array.isArray(data) ? orders.length : (data.limit || 15);
+
+    state.ordersPage = page;
+    state.ordersTotalPages = totalPages;
+
+    if (infoEl) {
+      if (total === 0) {
+        infoEl.textContent = 'Mostrando 0 de 0 pedidos';
+      } else {
+        const startIdx = (limitParam === 'ALL') ? 1 : ((page - 1) * limitUsed) + 1;
+        const endIdx = Math.min(startIdx + orders.length - 1, total);
+        infoEl.textContent = `Mostrando ${startIdx}–${endIdx} de ${total} pedidos`;
+      }
+    }
+
+    if (footerEl) {
+      footerEl.style.display = (totalPages > 1) ? 'flex' : 'none';
+    }
+    if (pageLabelEl) {
+      pageLabelEl.textContent = `Página ${page} de ${totalPages}`;
+    }
+    if (prevBtn) prevBtn.disabled = page <= 1;
+    if (nextBtn) nextBtn.disabled = page >= totalPages;
 
     if (orders.length === 0) {
       container.innerHTML = `
@@ -678,21 +1072,22 @@ async function loadOrders() {
         ? `<br><span class="exit-date-badge">🚪 Salida: ${formatDate(order.exit_date)}</span>`
         : '';
       const pm = order.payment_method || 'EFECTIVO';
-      const rutLine = order.client_rut ? `<br><small style="color:#475569; font-family:monospace;">RUT: ${sanitizeRut(order.client_rut)}</small>` : '';
+      const rutLine = order.client_rut ? `<br><small style="color:#475569; font-family:monospace; white-space:nowrap;">RUT: ${sanitizeRut(order.client_rut)}</small>` : '';
 
+      const canManageOrders = hasPerm('manage_orders');
       tr.innerHTML = `
         <td><strong style="color: #d90429; font-size: 1rem;">${order.folio}</strong></td>
         <td>
           <strong>${order.client_name}</strong>${rutLine}<br>
-          <small style="color: #64748b;">📞 ${order.client_phone || 'Sin fono'}</small>
+          <small style="color: #64748b; white-space:nowrap;">📞 ${order.client_phone || 'Sin fono'}</small>
         </td>
         <td>
-          <small style="color:#64748b;">📥 Recep: ${formatDate(order.reception_date)}</small><br>
-          <small style="color: #0284c7; font-weight:700;">📅 Entrega: ${formatDate(order.delivery_date)}</small>${urgencyBadge}${exitBadge}
+          <small style="color:#64748b; white-space:nowrap;">📥 Recep: ${formatDate(order.reception_date)}</small><br>
+          <small style="color: #0284c7; font-weight:700; white-space:nowrap;">📅 Entrega: ${formatDate(order.delivery_date)}</small>${urgencyBadge}${exitBadge}
         </td>
         <td><span class="status-pill status-${order.status}">${formatStatus(order.status)}</span></td>
         <td>
-          <span style="font-weight: 800; color: ${order.payment_status === 'PAGADO' ? '#15803d' : '#b45309'};">
+          <span style="font-weight: 800; white-space:nowrap; color: ${order.payment_status === 'PAGADO' ? '#15803d' : '#b45309'};">
             ${order.payment_status === 'PAGADO' ? '✅ PAGADO' : '⏳ PENDIENTE'}
           </span><br>
           <span class="payment-method-badge pm-${pm}">${formatPaymentMethod(pm)}</span>
@@ -702,10 +1097,10 @@ async function loadOrders() {
         <td><strong style="color: #0f172a; font-size: 1.05rem;">${formatMoney(order.total)}</strong></td>
         <td>
           <div class="table-actions">
-            <button type="button" class="btn btn-sm btn-primary btn-manage-order" title="Registrar fecha de salida, pago o medio de pago">⚙️ Salida / Pago</button>
+            ${canManageOrders ? `<button type="button" class="btn btn-sm btn-primary btn-manage-order" title="Registrar fecha de salida, pago o medio de pago">⚙️ Salida / Pago</button>` : ''}
             <button type="button" class="btn btn-sm btn-outline btn-print-order" title="Imprimir Guía / Comprobante">🖨️ Ver/Imprimir</button>
             <button type="button" class="btn btn-sm btn-whatsapp btn-wa-order" title="Avisar por WhatsApp">📲 WhatsApp</button>
-            <select class="status-select">
+            <select class="status-select" ${canManageOrders ? '' : 'disabled title="Sin permiso para cambiar estado"'}>
               <option value="RECIBIDO" ${order.status === 'RECIBIDO' ? 'selected' : ''}>📥 Recibido</option>
               <option value="EN_LAVADO" ${order.status === 'EN_LAVADO' ? 'selected' : ''}>🧼 En Lavado</option>
               <option value="LISTO" ${order.status === 'LISTO' ? 'selected' : ''}>✅ Listo p/Retiro</option>
@@ -718,16 +1113,21 @@ async function loadOrders() {
 
       // Status change listener
       const statusSelect = tr.querySelector('.status-select');
-      statusSelect.addEventListener('change', async (e) => {
-        await updateOrderStatus(order.id, e.target.value);
-        loadOrders();
-        loadStats();
-      });
+      if (statusSelect && canManageOrders) {
+        statusSelect.addEventListener('change', async (e) => {
+          await updateOrderStatus(order.id, e.target.value);
+          loadOrders();
+          loadStats();
+        });
+      }
 
       // Manage Order button (Exit date & payment)
-      tr.querySelector('.btn-manage-order').addEventListener('click', () => {
-        openManageOrderModal(order);
-      });
+      const manageBtn = tr.querySelector('.btn-manage-order');
+      if (manageBtn) {
+        manageBtn.addEventListener('click', () => {
+          openManageOrderModal(order);
+        });
+      }
 
       // Print button
       tr.querySelector('.btn-print-order').addEventListener('click', () => {
@@ -1043,22 +1443,16 @@ async function loadClients() {
         <td class="col-date ${isColHidden('col-date')}"><small style="color:#64748b;">${c.created_at ? formatDate(c.created_at.split(' ')[0]) : '-'}</small></td>
         <td style="text-align: center;">
           <div class="table-actions">
-            <button type="button" class="btn btn-sm btn-primary btn-new-order-client" title="Crear nueva Guía para este cliente">
-              📝 Pedido
-            </button>
-            <button type="button" class="btn btn-sm btn-outline btn-edit-client" title="Editar datos del cliente">
-              ✏️ Editar
-            </button>
-            <button type="button" class="btn btn-sm btn-danger btn-delete-client" title="Eliminar cliente del sistema">
-              🗑️
-            </button>
+            ${hasPerm('create_orders') ? `<button type="button" class="btn btn-sm btn-primary btn-new-order-client" title="Crear nueva Guía para este cliente">📝 Pedido</button>` : ''}
+            ${hasPerm('manage_clients') ? `<button type="button" class="btn btn-sm btn-outline btn-edit-client" title="Editar datos del cliente">✏️ Editar</button>
+            <button type="button" class="btn btn-sm btn-danger btn-delete-client" title="Eliminar cliente del sistema">🗑️</button>` : ''}
           </div>
         </td>
       `;
 
       // 1. Create order for this client
-      tr.querySelector('.btn-new-order-client').addEventListener('click', () => {
-        document.querySelector('.nav-tab[data-target="nueva-guia"]').click();
+      tr.querySelector('.btn-new-order-client')?.addEventListener('click', () => {
+        navigateToTab('nueva-guia');
         document.getElementById('clientName').value = c.name;
         const rutEl = document.getElementById('clientRut');
         if (rutEl) rutEl.value = sanitizeRut(c.rut || '');
@@ -1068,12 +1462,12 @@ async function loadClients() {
       });
 
       // 2. Edit Client
-      tr.querySelector('.btn-edit-client').addEventListener('click', () => {
+      tr.querySelector('.btn-edit-client')?.addEventListener('click', () => {
         openClientModal(c);
       });
 
       // 3. Delete Client
-      tr.querySelector('.btn-delete-client').addEventListener('click', () => {
+      tr.querySelector('.btn-delete-client')?.addEventListener('click', () => {
         openDeleteConfirmModal(c);
       });
 
@@ -1357,32 +1751,37 @@ function renderPricesCatalog() {
       `<option value="${cat}" ${s.category === cat ? 'selected' : ''}>${cat}</option>`
     ).join('');
 
+    const canManageCatalog = hasPerm('manage_catalog');
+    const disAttr = canManageCatalog ? '' : 'disabled';
+
     tr.innerHTML = `
       <td>
-        <input type="text" class="table-input service-name-input" value="${s.name}" style="font-weight: 700;">
+        <input type="text" class="table-input service-name-input" value="${s.name}" style="font-weight: 700;" ${disAttr}>
       </td>
       <td>
-        <select class="table-select service-category-select" style="font-weight: 600;">
+        <select class="table-select service-category-select" style="font-weight: 600;" ${disAttr}>
           ${catOptionsHtml}
         </select>
       </td>
       <td>
         <div class="table-price-wrapper">
           <span class="table-currency-symbol">$</span>
-          <input type="number" step="100" min="0" class="table-input service-price-input" value="${s.default_price}">
+          <input type="number" step="100" min="0" class="table-input service-price-input" value="${s.default_price}" ${disAttr}>
         </div>
       </td>
       <td style="text-align: center;">
         <div class="table-actions">
-          <button type="button" class="btn btn-sm btn-primary" onclick="openServiceModalById(${s.id})" title="Editar prenda en ventana completa">
-            ✏️ Editar
-          </button>
-          <button type="button" class="btn btn-sm btn-success" onclick="saveRowInline(${s.id})" title="Guardar cambios directos de esta fila">
-            💾 Guardar
-          </button>
-          <button type="button" class="btn btn-sm btn-danger" onclick="openDeleteServiceModalById(${s.id})" title="Eliminar prenda del catálogo">
-            🗑️
-          </button>
+          ${canManageCatalog ? `
+            <button type="button" class="btn btn-sm btn-primary" onclick="openServiceModalById(${s.id})" title="Editar prenda en ventana completa">
+              ✏️ Editar
+            </button>
+            <button type="button" class="btn btn-sm btn-success" onclick="saveRowInline(${s.id})" title="Guardar cambios directos de esta fila">
+              💾 Guardar
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="openDeleteServiceModalById(${s.id})" title="Eliminar prenda del catálogo">
+              🗑️
+            </button>
+          ` : '<span style="color:#64748b; font-size:0.8rem; font-weight:600;">🔒 Solo lectura</span>'}
         </div>
       </td>
     `;
@@ -1680,11 +2079,16 @@ async function loadStats() {
     if (pendingOrdersEl) pendingOrdersEl.textContent = stats.pendingCount;
     if (totalClientsEl) totalClientsEl.textContent = stats.totalClients;
 
-    // Update pending badge in header/nav
+    // Update pending badge in header/nav & hamburger drawer
     const badge = document.getElementById('pendingNavBadge');
     if (badge) {
       badge.textContent = stats.pendingCount;
       badge.style.display = stats.pendingCount > 0 ? 'inline-block' : 'none';
+    }
+    const drawerBadge = document.getElementById('drawerPendingBadge');
+    if (drawerBadge) {
+      drawerBadge.textContent = stats.pendingCount;
+      drawerBadge.style.display = stats.pendingCount > 0 ? 'inline-block' : 'none';
     }
 
     // Render Upcoming / Overdue Deliveries Alert Banner
@@ -1745,7 +2149,7 @@ function renderUpcomingAlertsBanner(stats) {
       </div>
       <div style="display: flex; gap: 0.5rem; align-items: center;">
         <button type="button" class="btn btn-sm ${hasOverdue ? 'btn-danger' : 'btn-primary'}" onclick="goToUpcomingOrders()">
-          🧺 Ver Todas en Control de Pedidos
+          🔍 Filtrar solo Próximas / Atrasadas
         </button>
       </div>
     </div>
@@ -1760,7 +2164,12 @@ function goToUpcomingOrders() {
   const pedidosTab = document.querySelector('.nav-tab[data-target="pedidos-list"]');
   const statusSelect = document.getElementById('orderStatusFilter');
   if (statusSelect) statusSelect.value = 'PROXIMAS';
-  if (pedidosTab) pedidosTab.click();
+  state.ordersPage = 1;
+  if (state.activeTab === 'pedidos-list') {
+    loadOrders();
+  } else if (pedidosTab) {
+    pedidosTab.click();
+  }
 }
 
 // ----------------- PRINT RECEIPT MODAL (FLYER REPLICA) -----------------
@@ -1790,20 +2199,38 @@ function openPrintModal(order) {
        </div>`
     : '';
 
+  const biz = order.business_config || state.laundry || state.config || {};
+  const bizName = biz.name || 'LAVANDERÍA BATERY CLEAN';
+  const bizSlogan = biz.slogan || 'Lavado de Alta Energía';
+  const bizAddress = biz.address || '';
+  const bizPhone = biz.phone || '';
+  const bizInsta = biz.instagram ? ` | 📸 @${biz.instagram.replace(/^@/, '')}` : '';
+  const bizLogo = biz.logo_url || getActiveLogoUrl();
+  const termsLines = (biz.terms || '').trim()
+    ? biz.terms.split('\n').map(line => line.trim()).filter(Boolean)
+    : [
+      '1. La ropa se recibe en buen estado, y se entrega en el mismo estado, salvo desgaste normal por el proceso de lavado y secado.',
+      '2. No nos hacemos responsables por prendas de valor, dinero u objetos olvidados en las prendas.',
+      '3. En caso de pérdida o daño, se hará el reembolso del valor de la prenda, según su depreciación.',
+      '4. El cliente deberá revisar su ropa al momento de la entrega.',
+      '5. Este comprobante es su respaldo de recepción.'
+    ];
+  const termsHtml = termsLines.map(line => `<div>${line}</div>`).join('');
+
   content.innerHTML = `
     <div class="receipt-paper">
       <!-- Flyer Header -->
       <div class="receipt-header">
         <div class="receipt-brand">
           <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:4px;">
-            <img src="/assets/logo.jpeg" alt="Batery Clean" style="height:58px; width:auto; max-width:82px; object-fit:contain; border-radius:6px;">
+            <img src="${bizLogo}" alt="${bizName}" style="height:58px; width:auto; max-width:82px; object-fit:contain; border-radius:6px;">
             <div>
-              <h2 style="margin:0; line-height:1.1; font-size:1.3rem; color:#004b93; font-weight:900;">LAVANDERÍA <br><span style="color:#00a844;">BATERY CLEAN</span></h2>
-              <p style="margin:2px 0 0; font-weight:bold; color:#0056b3; font-size:0.75rem;">⚡ Lavado de Alta Energía ⚡</p>
+              <h2 style="margin:0; line-height:1.1; font-size:1.25rem; color:#004b93; font-weight:900;">${bizName}</h2>
+              <p style="margin:2px 0 0; font-weight:bold; color:#0056b3; font-size:0.75rem;">⚡ ${bizSlogan} ⚡</p>
             </div>
           </div>
-          <p style="font-size:0.75rem; margin:2px 0;">📍 Calle Villa Alegre 603, Nacimiento</p>
-          <p style="font-size:0.75rem; margin:2px 0;">📞 +569 68096021 | 📸 @lavanderiabateryclean_</p>
+          ${bizAddress ? `<p style="font-size:0.75rem; margin:2px 0;">📍 ${bizAddress}</p>` : ''}
+          <p style="font-size:0.75rem; margin:2px 0;">📞 ${bizPhone || 'Sin teléfono'}${bizInsta}</p>
         </div>
 
         <div style="text-align:right;">
@@ -1887,14 +2314,10 @@ function openPrintModal(order) {
         <span>${formatMoney(order.total)}</span>
       </div>
 
-      <!-- Terms & Conditions verbatim from flyer -->
+      <!-- Terms & Conditions -->
       <div class="receipt-terms">
         <strong style="display:block; text-align:center; font-size:0.75rem; margin-bottom:3px; color:#004b93;">TÉRMINOS Y CONDICIONES</strong>
-        <div>1. La ropa se recibe en buen estado, y se entrega en el mismo estado, salvo desgaste normal por el proceso de lavado y secado.</div>
-        <div>2. No nos hacemos responsables por prendas de valor, dinero u objetos olvidados en las prendas.</div>
-        <div>3. En caso de pérdida o daño, se hará el reembolso del valor de la prenda, según su depreciación.</div>
-        <div>4. El cliente deberá revisar su ropa al momento de la entrega.</div>
-        <div>5. Este comprobante es su respaldo de recepción.</div>
+        ${termsHtml}
       </div>
 
       <div class="receipt-footer-slogan">
@@ -2853,12 +3276,14 @@ async function loadExpenses() {
           </td>
           <td style="text-align: center;">
             <div class="table-actions">
-              <button type="button" class="btn btn-sm btn-primary" onclick="openExpenseModalById(${e.id})" title="Editar datos del gasto">
-                ✏️ Editar
-              </button>
-              <button type="button" class="btn btn-sm btn-danger" onclick="openDeleteExpenseModalById(${e.id})" title="Eliminar gasto">
-                🗑️
-              </button>
+              ${hasPerm('manage_expenses') ? `
+                <button type="button" class="btn btn-sm btn-primary" onclick="openExpenseModalById(${e.id})" title="Editar datos del gasto">
+                  ✏️ Editar
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="openDeleteExpenseModalById(${e.id})" title="Eliminar gasto">
+                  🗑️
+                </button>
+              ` : '<span style="color:#64748b; font-size:0.8rem; font-weight:600;">🔒 Solo lectura</span>'}
             </div>
           </td>
         </tr>
@@ -3033,5 +3458,1387 @@ async function executeDeleteExpense() {
   } catch (err) {
     console.error('Error al eliminar gasto:', err);
     alert('Error al eliminar: ' + err.message);
+  }
+}
+
+
+// ==================== SAAS AUTH, ROLES, USERS & MULTI-TENANT PANEL ====================
+
+function fillDemoCredentials(username, password) {
+  const uEl = document.getElementById('loginUsername');
+  const pEl = document.getElementById('loginPassword');
+  if (uEl) uEl.value = username;
+  if (pEl) pEl.value = password;
+  const errEl = document.getElementById('authErrorBox');
+  if (errEl) errEl.style.display = 'none';
+}
+
+async function submitLoginForm() {
+  const username = (document.getElementById('loginUsername')?.value || '').trim();
+  const password = document.getElementById('loginPassword')?.value || '';
+  const errEl = document.getElementById('authErrorBox');
+  const btn = document.getElementById('btnLoginSubmit');
+
+  if (errEl) errEl.style.display = 'none';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Verificando...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'No se pudo iniciar sesión.');
+    }
+
+    await applyAuthSession(data);
+    showToast(`Bienvenido/a, ${data.user.full_name}`, 'success');
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🚀 Ingresar al Sistema';
+    }
+  }
+}
+
+async function logoutUser() {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch (e) {}
+  handleUnauthorizedSession();
+  const pEl = document.getElementById('loginPassword');
+  if (pEl) pEl.value = '';
+  showToast('Sesión cerrada correctamente', 'success');
+}
+
+async function ensurePermissionsCatalog() {
+  if (state.permissionsCatalog && state.permissionsCatalog.length > 0) return state.permissionsCatalog;
+  const res = await fetch('/api/permissions-catalog');
+  if (res.ok) {
+    state.permissionsCatalog = await res.json();
+  }
+  return state.permissionsCatalog || [];
+}
+
+function switchUsersRolesSubTab(subTab) {
+  state.usersRolesSubTab = subTab;
+  const usersPane = document.getElementById('usersSubPane');
+  const rolesPane = document.getElementById('rolesSubPane');
+  const btnUsers = document.getElementById('btnSubTabUsers');
+  const btnRoles = document.getElementById('btnSubTabRoles');
+
+  if (usersPane) usersPane.style.display = subTab === 'users' ? 'block' : 'none';
+  if (rolesPane) rolesPane.style.display = subTab === 'roles' ? 'block' : 'none';
+  if (btnUsers) btnUsers.className = subTab === 'users' ? 'btn btn-primary' : 'btn btn-outline';
+  if (btnRoles) btnRoles.className = subTab === 'roles' ? 'btn btn-primary' : 'btn btn-outline';
+}
+
+async function loadUsersAndRoles() {
+  await ensurePermissionsCatalog();
+
+  if (hasPerm('manage_roles') || hasPerm('manage_users')) {
+    try {
+      const resRoles = await fetch('/api/roles');
+      if (resRoles.ok) state.roles = await resRoles.json();
+    } catch (e) {
+      console.error('Error loading roles:', e);
+    }
+  }
+
+  if (hasPerm('manage_users')) {
+    try {
+      const resUsers = await fetch('/api/users');
+      if (resUsers.ok) state.users = await resUsers.json();
+    } catch (e) {
+      console.error('Error loading users:', e);
+    }
+  }
+
+  // Auto-select sub-tab if user only has manage_roles
+  if (!hasPerm('manage_users') && hasPerm('manage_roles')) {
+    switchUsersRolesSubTab('roles');
+  } else if (hasPerm('manage_users') && !hasPerm('manage_roles')) {
+    switchUsersRolesSubTab('users');
+  }
+
+  renderUsersTable();
+  renderRolesGrid();
+}
+
+function renderUsersTable() {
+  const tbody = document.getElementById('usersTableBody');
+  if (!tbody) return;
+
+  if (!hasPerm('manage_users')) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:#64748b;">No tienes permiso para administrar usuarios.</td></tr>';
+    return;
+  }
+
+  if (!state.users || state.users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:#64748b;">No hay usuarios registrados en esta lavandería.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = state.users.map(u => {
+    const isSelf = state.authUser && Number(u.id) === Number(state.authUser.id);
+    return `
+      <tr>
+        <td><strong style="font-family:monospace; color:#093c7d;">@${u.username}</strong></td>
+        <td><strong>${u.full_name}</strong></td>
+        <td>${u.email || '<span style="color:#94a3b8;">-</span>'}</td>
+        <td><span class="perm-chip">${u.role_name || 'Sin rol'}</span></td>
+        <td>
+          <span class="status-pill ${u.active ? 'status-ENTREGADO' : 'status-CANCELADO'}">
+            ${u.active ? '✅ Activo' : '⛔ Inactivo'}
+          </span>
+        </td>
+        <td style="text-align: center;">
+          <div class="table-actions">
+            <button type="button" class="btn btn-sm btn-primary" onclick="openUserModalById(${u.id})">✏️ Editar</button>
+            ${isSelf ? '' : `<button type="button" class="btn btn-sm btn-danger" onclick="deleteUserById(${u.id})" title="Eliminar usuario">🗑️</button>`}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderRolesGrid() {
+  const grid = document.getElementById('rolesListGrid');
+  if (!grid) return;
+
+  if (!state.roles || state.roles.length === 0) {
+    grid.innerHTML = '<p style="color:#64748b;">No hay roles configurados.</p>';
+    return;
+  }
+
+  const labelMap = {};
+  (state.permissionsCatalog || []).forEach(p => { labelMap[p.key] = p.label; });
+  const canEditRoles = hasPerm('manage_roles');
+
+  grid.innerHTML = state.roles.map(r => {
+    const perms = Array.isArray(r.permissions) ? r.permissions : [];
+    const chips = perms.map(p => `<span class="perm-chip">${labelMap[p] || p}</span>`).join('');
+    return `
+      <div class="role-card">
+        <div>
+          <div class="role-card-header">
+            <div>
+              <div class="role-card-title">🛡️ ${r.name}</div>
+              <small style="color:#64748b;">${r.description || 'Sin descripción'}</small>
+            </div>
+            <span class="badge" style="background:#e0f2fe; color:#0369a1; padding:0.2rem 0.6rem; border-radius:12px; font-size:0.75rem; font-weight:700;">
+              ${r.users_count || 0} usuario(s)
+            </span>
+          </div>
+          <div class="role-perm-chips" style="margin-top:0.75rem;">
+            ${chips || '<small style="color:#94a3b8;">Sin permisos asignados</small>'}
+          </div>
+        </div>
+        ${canEditRoles ? `
+          <div style="display:flex; gap:0.5rem; justify-content:flex-end; border-top:1px solid #f1f5f9; padding-top:0.75rem;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="openRoleModalById(${r.id})">✏️ Editar Permisos</button>
+            ${r.is_system ? '' : `<button type="button" class="btn btn-sm btn-danger" onclick="deleteRoleById(${r.id})">🗑️</button>`}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function openUserModal(user = null) {
+  const modal = document.getElementById('userFormModal');
+  if (!modal) return;
+
+  const roleSelect = document.getElementById('modalUserRole');
+  if (roleSelect) {
+    roleSelect.innerHTML = (state.roles || []).map(r =>
+      `<option value="${r.id}">${r.name}</option>`
+    ).join('');
+  }
+
+  document.getElementById('userModalTitle').textContent = user ? `✏️ Editar Usuario: @${user.username}` : '➕ Nuevo Usuario de Lavandería';
+  document.getElementById('modalUserId').value = user ? user.id : '';
+
+  const uInput = document.getElementById('modalUserUsername');
+  uInput.value = user ? user.username : '';
+  uInput.readOnly = Boolean(user);
+
+  document.getElementById('modalUserFullName').value = user ? user.full_name : '';
+  document.getElementById('modalUserEmail').value = user ? (user.email || '') : '';
+  if (roleSelect && user && user.role_id) roleSelect.value = user.role_id;
+
+  const pInput = document.getElementById('modalUserPassword');
+  const pLabel = document.getElementById('modalUserPasswordLabel');
+  if (pInput) {
+    pInput.value = '';
+    pInput.placeholder = user ? 'Dejar vacío para mantener clave actual' : 'Mínimo 4 caracteres';
+  }
+  if (pLabel) pLabel.textContent = user ? 'Nueva Contraseña (Opcional)' : 'Contraseña *';
+  document.getElementById('modalUserActive').checked = user ? Boolean(user.active) : true;
+
+  modal.classList.add('open');
+}
+
+function openUserModalById(id) {
+  const user = (state.users || []).find(u => Number(u.id) === Number(id));
+  if (user) openUserModal(user);
+}
+
+function closeUserModal() {
+  document.getElementById('userFormModal')?.classList.remove('open');
+}
+
+async function saveUserModalSubmit() {
+  const id = document.getElementById('modalUserId').value;
+  const payload = {
+    username: document.getElementById('modalUserUsername').value.trim(),
+    full_name: document.getElementById('modalUserFullName').value.trim(),
+    email: document.getElementById('modalUserEmail').value.trim(),
+    role_id: document.getElementById('modalUserRole').value,
+    password: document.getElementById('modalUserPassword').value,
+    active: document.getElementById('modalUserActive').checked
+  };
+
+  try {
+    const res = await fetch(id ? `/api/users/${id}` : '/api/users', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo guardar el usuario');
+
+    closeUserModal();
+    await loadUsersAndRoles();
+    showToast(id ? '✅ Usuario actualizado' : '✅ Usuario creado correctamente', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function deleteUserById(id) {
+  const user = (state.users || []).find(u => Number(u.id) === Number(id));
+  if (!confirm(`¿Eliminar al usuario "@${user?.username || id}"?`)) return;
+
+  try {
+    const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo eliminar');
+    await loadUsersAndRoles();
+    showToast('🗑️ Usuario eliminado', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function openRoleModal(role = null) {
+  await ensurePermissionsCatalog();
+  const modal = document.getElementById('roleFormModal');
+  if (!modal) return;
+
+  document.getElementById('roleModalTitle').textContent = role ? `🛡️ Editar Rol: ${role.name}` : '➕ Crear Nuevo Rol';
+  document.getElementById('modalRoleId').value = role ? role.id : '';
+  document.getElementById('modalRoleName').value = role ? role.name : '';
+  document.getElementById('modalRoleDescription').value = role ? (role.description || '') : '';
+
+  const selectedPerms = new Set(role && Array.isArray(role.permissions) ? role.permissions : []);
+  const groups = {};
+  (state.permissionsCatalog || []).forEach(p => {
+    if (!groups[p.group]) groups[p.group] = [];
+    groups[p.group].push(p);
+  });
+
+  const grid = document.getElementById('rolePermissionsGrid');
+  if (grid) {
+    grid.innerHTML = Object.entries(groups).map(([groupName, items]) => `
+      <div class="perm-group-box">
+        <div class="perm-group-title">${groupName}</div>
+        ${items.map(p => `
+          <label class="perm-check-label">
+            <input type="checkbox" class="role-perm-checkbox" value="${p.key}" ${selectedPerms.has(p.key) ? 'checked' : ''}>
+            <span>${p.label}</span>
+          </label>
+        `).join('')}
+      </div>
+    `).join('');
+  }
+
+  modal.classList.add('open');
+}
+
+function openRoleModalById(id) {
+  const role = (state.roles || []).find(r => Number(r.id) === Number(id));
+  if (role) openRoleModal(role);
+}
+
+function closeRoleModal() {
+  document.getElementById('roleFormModal')?.classList.remove('open');
+}
+
+function toggleAllRolePermissions(checked) {
+  document.querySelectorAll('.role-perm-checkbox').forEach(cb => { cb.checked = checked; });
+}
+
+async function saveRoleModalSubmit() {
+  const id = document.getElementById('modalRoleId').value;
+  const permissions = Array.from(document.querySelectorAll('.role-perm-checkbox:checked')).map(cb => cb.value);
+  const payload = {
+    name: document.getElementById('modalRoleName').value.trim(),
+    description: document.getElementById('modalRoleDescription').value.trim(),
+    permissions
+  };
+
+  try {
+    const res = await fetch(id ? `/api/roles/${id}` : '/api/roles', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo guardar el rol');
+
+    closeRoleModal();
+    await loadUsersAndRoles();
+    await checkAuthAndInit();
+    showToast(id ? '✅ Permisos del rol actualizados' : '✅ Nuevo rol creado', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function deleteRoleById(id) {
+  const role = (state.roles || []).find(r => Number(r.id) === Number(id));
+  if (!confirm(`¿Eliminar el rol "${role?.name || id}"?`)) return;
+
+  try {
+    const res = await fetch(`/api/roles/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo eliminar el rol');
+    await loadUsersAndRoles();
+    showToast('🗑️ Rol eliminado', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ==================== KAJERO-PARITY SAAS SUPERADMIN & SUPPORT (PRIVACY-FIRST) ====================
+
+const SAAS_TENANT_MENUS = [
+  { id: 'nueva-guia', label: '📝 Recepción (Inicio)' },
+  { id: 'pedidos-list', label: '🧺 Control de Pedidos' },
+  { id: 'clientes-list', label: '👥 Clientes' },
+  { id: 'precios-catalog', label: '🏷️ Catálogo & Precios' },
+  { id: 'gastos-list', label: '💸 Gastos & Insumos' },
+  { id: 'reportes-ventas', label: '📊 Reportes Financieros' },
+  { id: 'usuarios-roles', label: '🔐 Usuarios & Roles' },
+  { id: 'soporte', label: '🎧 Soporte SaaS' },
+  { id: 'ajustes', label: '⚙️ Ajustes y Respaldo' }
+];
+
+async function loadSaasDashboard() {
+  if (!hasPerm('__superadmin__')) return;
+  try {
+    const res = await fetch('/api/saas/dashboard');
+    if (!res.ok) throw new Error('Error al cargar estadísticas SaaS');
+    const data = await res.json();
+
+    state.saasLaundries = data.laundries || [];
+    state.saasPlans = data.plans || [];
+    state.saasSummary = data.summary || {};
+
+    const s = state.saasSummary;
+    const elTotal = document.getElementById('saasKpiTotalBiz');
+    const elBreakdown = document.getElementById('saasKpiBizBreakdown');
+    const elMrr = document.getElementById('saasKpiMrr');
+    const elArr = document.getElementById('saasKpiArr');
+    const elArpu = document.getElementById('saasKpiArpu');
+    const elStaff = document.getElementById('saasKpiStaff');
+    const elCatalogMeta = document.getElementById('saasKpiCatalogMeta');
+    const elHealthPct = document.getElementById('saasHealthActivePct');
+    const elHealthSub = document.getElementById('saasHealthActiveSub');
+    const elHealthAvg = document.getElementById('saasHealthAvgStaff');
+
+    if (elTotal) elTotal.textContent = s.totalLaundries || 0;
+    if (elBreakdown) elBreakdown.textContent = `${s.activeLaundries || 0} activas / ${s.inactiveLaundries || 0} inactivas`;
+    if (elMrr) elMrr.textContent = formatMoney(s.mrr || 0);
+    if (elArr) elArr.textContent = `ARR Proyectado: ${formatMoney(s.arr || 0)} / año`;
+    if (elArpu) elArpu.textContent = formatMoney(s.arpu || 0);
+    if (elStaff) elStaff.textContent = s.totalStaffAccounts || 0;
+    if (elCatalogMeta) elCatalogMeta.textContent = `${s.totalCatalogItems || 0} prendas en catálogos`;
+
+    const activePct = s.totalLaundries > 0 ? Math.round((s.activeLaundries / s.totalLaundries) * 100) : 0;
+    if (elHealthPct) elHealthPct.textContent = `${activePct}%`;
+    if (elHealthSub) elHealthSub.textContent = `${s.activeLaundries || 0} de ${s.totalLaundries || 0} activas`;
+    if (elHealthAvg) elHealthAvg.textContent = s.avgStaffPerLaundry || 0;
+
+    // Deactivated count & plan filter dropdown
+    const deactivatedEl = document.getElementById('saasDeactivatedCount');
+    if (deactivatedEl) deactivatedEl.textContent = s.deactivatedCount || 0;
+
+    const filterPlanSel = document.getElementById('saasBizFilterPlan');
+    if (filterPlanSel) {
+      const currentVal = filterPlanSel.value;
+      filterPlanSel.innerHTML = `<option value="">Todos los Planes</option>` +
+        state.saasPlans.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      filterPlanSel.value = currentVal;
+    }
+
+    // Expiring soon banner
+    const expBanner = document.getElementById('saasExpiringBanner');
+    const expChips = document.getElementById('saasExpiringChips');
+    const expiring = data.expiringSoon || [];
+    if (expBanner && expChips) {
+      if (expiring.length === 0) {
+        expBanner.style.display = 'none';
+      } else {
+        expBanner.style.display = 'block';
+        expChips.innerHTML = expiring.map(b => `
+          <div style="background:#ffffff; border:1px solid #fca5a5; border-radius:8px; padding:0.4rem 0.75rem; font-size:0.82rem; display:inline-flex; align-items:center; gap:0.5rem;">
+            <strong>${b.name}</strong>
+            <span style="color:#64748b; font-family:monospace;">(${sanitizeRut(b.rut) || 'Sin RUT'})</span>
+            <span class="perm-chip" style="background:#fee2e2; color:#991b1b; border-color:#fca5a5;">
+              ${b.daysRemaining === 0 ? 'Expirado' : `${b.daysRemaining} día(s) restante(s)`}
+            </span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Ecosystem of plans
+    const ecoList = document.getElementById('saasPlansEcosystemList');
+    if (ecoList) {
+      ecoList.innerHTML = state.saasPlans.map(p => {
+        const count = state.saasLaundries.filter(l => Number(l.plan_id) === Number(p.id) && l.status === 'Activo').length;
+        const mrrPlan = count * p.price;
+        const pct = Math.min(100, Math.round((count / Math.max(1, state.saasLaundries.length)) * 100));
+        return `
+          <div class="saas-plan-progress-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+              <div>
+                <strong style="color:var(--primary-navy); font-size:1rem;">${p.name}</strong>
+                <div style="font-size:0.8rem; color:#64748b;">
+                  Límites: ${p.limit_users || '∞'} usuarios / ${p.limit_services || '∞'} prendas
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <strong style="color:#16a34a; font-size:1rem;">${formatMoney(p.price)} CLP</strong>
+                <div style="font-size:0.74rem; color:#64748b;">mensual</div>
+              </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.84rem;">
+              <span>Suscripciones activas: <strong>${count}</strong></span>
+              <span>Aporte MRR: <strong style="color:#16a34a;">${formatMoney(mrrPlan)}</strong></span>
+            </div>
+            <div class="saas-progress-track"><div class="saas-progress-fill" style="width:${pct}%;"></div></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Upgrade candidates
+    const upgList = document.getElementById('saasUpgradeCandidatesList');
+    if (upgList) {
+      const candidates = data.upgradeCandidates || [];
+      if (candidates.length === 0) {
+        upgList.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.75rem; color:#15803d; font-size:0.84rem;">✅ Todas las lavanderías operan dentro de márgenes holgados de su plan.</div>`;
+      } else {
+        upgList.innerHTML = candidates.map(b => `
+          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:0.65rem 0.85rem; display:flex; justify-content:space-between; align-items:center; font-size:0.84rem;">
+            <div>
+              <strong>${b.name}</strong>
+              <div style="font-size:0.76rem; color:#92400e;">Plan ${b.plan_name || '-'}: ${b.users_count}/${b.plan_limit_users || '∞'} usr · ${b.services_count}/${b.plan_limit_services || '∞'} prendas</div>
+            </div>
+            <span class="perm-chip" style="background:#fef3c7; color:#92400e; border-color:#f59e0b;">Cerca del Límite</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    renderSaasBusinessesTable();
+  } catch (err) {
+    console.error('Error SaaS dashboard:', err);
+  }
+}
+
+function switchSaasBusinessesSubTab(subTab) {
+  state.saasBusinessesSubTab = subTab;
+  document.getElementById('saasBizSubPane').style.display = subTab === 'businesses' ? 'block' : 'none';
+  document.getElementById('saasAuditSubPane').style.display = subTab === 'audit' ? 'block' : 'none';
+  document.getElementById('btnSubTabSaasBiz').className = subTab === 'businesses' ? 'btn btn-primary' : 'btn btn-outline';
+  document.getElementById('btnSubTabSaasAudit').className = subTab === 'audit' ? 'btn btn-primary' : 'btn btn-outline';
+  if (subTab === 'audit') loadSaasAuditLogs();
+}
+
+function clearSaasBizFilters() {
+  const s = document.getElementById('saasBizSearch');
+  const p = document.getElementById('saasBizFilterPlan');
+  const st = document.getElementById('saasBizFilterStatus');
+  const deact = document.getElementById('saasShowDeactivated');
+  if (s) s.value = '';
+  if (p) p.value = '';
+  if (st) st.value = '';
+  if (deact) deact.checked = false;
+  renderSaasBusinessesTable();
+}
+
+function renderSaasBusinessesTable() {
+  const tbody = document.getElementById('saasLaundriesTableBody');
+  if (!tbody) return;
+
+  const q = (document.getElementById('saasBizSearch')?.value || '').trim().toLowerCase();
+  const fPlan = document.getElementById('saasBizFilterPlan')?.value || '';
+  const fStatus = document.getElementById('saasBizFilterStatus')?.value || '';
+  const showDeact = Boolean(document.getElementById('saasShowDeactivated')?.checked);
+
+  const filtered = (state.saasLaundries || []).filter(l => {
+    if (!showDeact && l.status === 'Dado de Baja' && fStatus !== 'Dado de Baja') return false;
+    if (fPlan && String(l.plan_id) !== String(fPlan)) return false;
+    if (fStatus === 'TRIAL') {
+      if (!l.isTrialActive) return false;
+    } else if (fStatus && l.status !== fStatus) {
+      return false;
+    }
+    if (q) {
+      const hay = `${l.name} ${l.rut || ''} ${l.address || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:#64748b;">No hay lavanderías que coincidan con los filtros.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(l => {
+    const statusPillCls = l.status === 'Activo' ? 'status-ENTREGADO' : (l.status === 'Suspendido' ? 'status-RECIBIDO' : 'status-CANCELADO');
+    const validityColor = l.daysRemaining <= 5 ? '#dc2626' : '#15803d';
+    const userLimitTxt = l.plan_limit_users > 0 ? `${l.users_count} / ${l.plan_limit_users}` : `${l.users_count} / ∞`;
+    const srvLimitTxt = l.plan_limit_services > 0 ? `${l.services_count} / ${l.plan_limit_services}` : `${l.services_count} / ∞`;
+
+    const actionButtons = [];
+    actionButtons.push(`<button type="button" class="btn btn-sm btn-outline" style="min-width:32px; font-weight:900; color:#0284c7;" onclick="openGraceModalById(${l.id})" title="Otorgar días de gracia" aria-label="Otorgar días de gracia">+</button>`);
+    actionButtons.push(`<button type="button" class="btn btn-sm btn-primary" style="min-width:32px;" onclick="openLaundryModalById(${l.id})" title="Editar sede y plan" aria-label="Editar sede y plan">✏️</button>`);
+    if (l.status === 'Activo') {
+      actionButtons.push(`<button type="button" class="btn btn-sm btn-outline" style="min-width:32px; color:#d97706; border-color:#f59e0b;" onclick="toggleLaundryStatus(${l.id}, 'Suspendido')" title="Suspender" aria-label="Suspender">⏸️</button>`);
+      actionButtons.push(`<button type="button" class="btn btn-sm btn-outline" style="min-width:32px; color:#dc2626; border-color:#fca5a5; font-weight:900;" onclick="toggleLaundryStatus(${l.id}, 'Dado de Baja')" title="Dar de baja" aria-label="Dar de baja">−</button>`);
+    } else if (l.status === 'Suspendido') {
+      actionButtons.push(`<button type="button" class="btn btn-sm btn-success" style="min-width:32px;" onclick="toggleLaundryStatus(${l.id}, 'Activo')" title="Activar" aria-label="Activar">▶️</button>`);
+      actionButtons.push(`<button type="button" class="btn btn-sm btn-outline" style="min-width:32px; color:#dc2626; border-color:#fca5a5; font-weight:900;" onclick="toggleLaundryStatus(${l.id}, 'Dado de Baja')" title="Dar de baja" aria-label="Dar de baja">−</button>`);
+    } else {
+      actionButtons.push(`<button type="button" class="btn btn-sm btn-success" style="min-width:32px;" onclick="toggleLaundryStatus(${l.id}, 'Activo')" title="Reactivar" aria-label="Reactivar">♻️</button>`);
+    }
+    actionButtons.push(`<button type="button" class="btn btn-sm btn-danger" style="min-width:32px;" onclick="openDeleteLaundryModalById(${l.id})" title="Eliminar permanentemente" aria-label="Eliminar permanentemente">🗑️</button>`);
+
+    return `
+      <tr>
+        <td>
+          <strong style="color:#071933;">${l.name}</strong>
+          <br><small style="color:#64748b;">${l.address || l.slogan || ''}</small>
+          ${l.admin_email ? `<br><small style="color:#0284c7;">✉️ ${l.admin_email}</small>` : ''}
+        </td>
+        <td><span style="font-family:monospace; font-weight:700;">${sanitizeRut(l.rut) || '-'}</span></td>
+        <td><span class="perm-chip">${l.plan_name || 'Sin Plan'}</span></td>
+        <td style="text-align:center;"><strong>${userLimitTxt}</strong></td>
+        <td style="text-align:center;"><strong>${srvLimitTxt}</strong></td>
+        <td>
+          <small>Reg: ${l.created_at ? formatDate(String(l.created_at).slice(0, 10)) : '-'}</small><br>
+          <small style="color:#0284c7;">Pago: ${l.last_payment_date ? formatDate(l.last_payment_date) : 'Sin reg.'}</small>
+        </td>
+        <td>
+          <strong style="color:${validityColor};">${l.isTrialActive ? `Prueba · ${l.daysRemaining}d` : `${l.daysRemaining} días`}</strong>
+          ${l.grace_days_total > 0 ? `<br><small style="color:#16a34a;">+${l.grace_days_total}d gracia</small>` : ''}
+        </td>
+        <td><span class="status-pill ${statusPillCls}">${l.status}</span></td>
+        <td style="text-align:center;"><div class="table-actions" style="flex-wrap:nowrap; justify-content:center;">${actionButtons.join('')}</div></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function toggleLaundryStatus(id, nextStatus) {
+  const l = (state.saasLaundries || []).find(item => Number(item.id) === Number(id));
+  if (!confirm(`¿Cambiar el estado de "${l?.name || id}" a "${nextStatus}"?`)) return;
+  try {
+    const res = await fetch(`/api/saas/laundries/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo cambiar estado');
+    await loadSaasDashboard();
+    showToast(`✅ Estado actualizado a ${nextStatus}`, 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function generateRandomAdminPass() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$';
+  let pass = '';
+  for (let i = 0; i < 10; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  const inp = document.getElementById('modalLaundryAdminPassword');
+  if (inp) inp.value = pass;
+}
+
+function openLaundryModal(laundry = null) {
+  const modal = document.getElementById('laundryFormModal');
+  if (!modal) return;
+
+  const planSel = document.getElementById('modalLaundryPlan');
+  if (planSel) {
+    planSel.innerHTML = (state.saasPlans || []).map(p =>
+      `<option value="${p.id}">${p.name} (${formatMoney(p.price)}/mes)</option>`
+    ).join('');
+  }
+
+  document.getElementById('laundryModalTitle').textContent = laundry ? `✏️ Editar Lavandería: ${laundry.name}` : '🏢 Nueva Lavandería (SaaS)';
+  document.getElementById('modalLaundryId').value = laundry ? laundry.id : '';
+  document.getElementById('modalLaundryName').value = laundry ? laundry.name : '';
+  document.getElementById('modalLaundryRut').value = laundry ? sanitizeRut(laundry.rut || '') : '';
+  if (planSel && laundry && laundry.plan_id) planSel.value = laundry.plan_id;
+  document.getElementById('modalLaundryPayDate').value = laundry?.last_payment_date ? String(laundry.last_payment_date).slice(0, 10) : getLocalTodayISO();
+  document.getElementById('modalLaundryPhone').value = laundry ? (laundry.phone || '') : '';
+  document.getElementById('modalLaundryAddress').value = laundry ? (laundry.address || '') : '';
+  document.getElementById('modalLaundrySlogan').value = laundry ? (laundry.slogan || '') : 'Lavado de Alta Energía';
+  document.getElementById('modalLaundryTrial').checked = laundry ? Boolean(laundry.trial_enabled) : false;
+
+  const userWrap = document.getElementById('modalLaundryAdminUsernameWrap');
+  const passLbl = document.getElementById('modalLaundryAdminPasswordLabel');
+  if (userWrap) userWrap.style.display = laundry ? 'none' : 'block';
+  if (passLbl) passLbl.textContent = laundry ? 'Nueva Contraseña Admin (Opcional)' : 'Contraseña Admin *';
+
+  document.getElementById('modalLaundryAdminName').value = laundry ? (laundry.admin_full_name || '') : '';
+  document.getElementById('modalLaundryAdminEmail').value = laundry ? (laundry.admin_email || '') : '';
+  document.getElementById('modalLaundryAdminUsername').value = laundry ? (laundry.admin_username || '') : '';
+  document.getElementById('modalLaundryAdminPassword').value = '';
+
+  modal.classList.add('open');
+}
+
+function openLaundryModalById(id) {
+  const l = (state.saasLaundries || []).find(item => Number(item.id) === Number(id));
+  if (l) openLaundryModal(l);
+}
+
+function closeLaundryModal() {
+  document.getElementById('laundryFormModal')?.classList.remove('open');
+}
+
+async function saveLaundryModalSubmit() {
+  const id = document.getElementById('modalLaundryId').value;
+  const payload = {
+    name: document.getElementById('modalLaundryName').value.trim(),
+    rut: sanitizeRut(document.getElementById('modalLaundryRut').value),
+    plan_id: document.getElementById('modalLaundryPlan').value,
+    last_payment_date: document.getElementById('modalLaundryPayDate').value,
+    phone: document.getElementById('modalLaundryPhone').value.trim(),
+    address: document.getElementById('modalLaundryAddress').value.trim(),
+    slogan: document.getElementById('modalLaundrySlogan').value.trim(),
+    trial_enabled: document.getElementById('modalLaundryTrial').checked,
+    admin_full_name: document.getElementById('modalLaundryAdminName').value.trim(),
+    admin_email: document.getElementById('modalLaundryAdminEmail').value.trim(),
+    admin_password: document.getElementById('modalLaundryAdminPassword').value
+  };
+  if (!id) {
+    payload.admin_username = document.getElementById('modalLaundryAdminUsername').value.trim();
+  }
+
+  try {
+    const res = await fetch(id ? `/api/saas/laundries/${id}` : '/api/saas/laundries', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo guardar la lavandería');
+
+    closeLaundryModal();
+    await loadSaasDashboard();
+    showToast(id ? '✅ Lavandería actualizada' : '✅ Lavandería creada con plan, servicios y roles iniciales', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function openGraceModalById(id) {
+  const l = (state.saasLaundries || []).find(item => Number(item.id) === Number(id));
+  if (!l) return;
+
+  document.getElementById('graceLaundryId').value = l.id;
+  document.getElementById('graceBizTitle').textContent = `🏢 ${l.name} (${sanitizeRut(l.rut) || 'Sin RUT'})`;
+  document.getElementById('graceCurrentUntil').textContent = l.validUntil ? formatDate(l.validUntil.slice(0, 10)) : 'Sin vigencia';
+  document.getElementById('graceDaysLeft').textContent = `${l.daysRemaining || 0} días`;
+  document.getElementById('graceTotalGranted').textContent = `${l.grace_days_total || 0} días`;
+  document.getElementById('graceDaysInput').value = 3;
+
+  const histWrap = document.getElementById('graceHistoryWrap');
+  if (histWrap) histWrap.innerHTML = '<small style="color:#64748b;">Cargando historial...</small>';
+
+  document.getElementById('graceDaysModal').classList.add('open');
+  try {
+    const res = await fetch(`/api/saas/laundries/${id}/grace-history`);
+    const rows = res.ok ? await res.json() : [];
+    if (histWrap) {
+      histWrap.innerHTML = rows.length === 0
+        ? '<small style="color:#64748b;">Sin compensaciones previas.</small>'
+        : `<strong style="font-size:0.82rem; display:block; margin-bottom:0.4rem;">Últimas compensaciones:</strong>` +
+          rows.slice(0, 5).map(g => `
+            <div style="display:flex; justify-content:space-between; gap:0.5rem; font-size:0.78rem; padding:0.4rem 0.6rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:0.35rem;">
+              <strong style="color:#16a34a;">+${g.days}d</strong>
+              <span style="flex:1;">${g.reason}</span>
+              <small style="color:#64748b;">${g.granted_by_name}</small>
+            </div>
+          `).join('');
+    }
+  } catch (e) {}
+}
+
+function closeGraceModal() {
+  document.getElementById('graceDaysModal')?.classList.remove('open');
+}
+
+async function grantGraceDaysSubmit() {
+  const id = document.getElementById('graceLaundryId').value;
+  const days = parseInt(document.getElementById('graceDaysInput').value, 10);
+  const reason = document.getElementById('graceReasonInput').value.trim();
+
+  try {
+    const res = await fetch(`/api/saas/laundries/${id}/grace`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ days, reason })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error otorgando días de gracia');
+    closeGraceModal();
+    await loadSaasDashboard();
+    showToast(`✅ Se otorgaron +${days} días de gracia`, 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function openDeleteLaundryModalById(id) {
+  const l = (state.saasLaundries || []).find(item => Number(item.id) === Number(id));
+  if (!l) return;
+  document.getElementById('deleteLaundryId').value = l.id;
+  document.getElementById('deleteLaundryMsg').textContent = `¿Eliminar permanentemente "${l.name}" y todos sus registros asociados?`;
+  document.getElementById('deleteLaundryPassword').value = '';
+  document.getElementById('deleteLaundryModal').classList.add('open');
+}
+
+function closeDeleteLaundryModal() {
+  document.getElementById('deleteLaundryModal')?.classList.remove('open');
+}
+
+async function confirmDeleteLaundrySubmit() {
+  const id = document.getElementById('deleteLaundryId').value;
+  const password = document.getElementById('deleteLaundryPassword').value;
+  try {
+    const res = await fetch(`/api/saas/laundries/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al eliminar lavandería');
+    closeDeleteLaundryModal();
+    await loadSaasDashboard();
+    showToast('🗑️ Lavandería eliminada permanentemente', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function loadSaasAuditLogs() {
+  try {
+    const res = await fetch('/api/saas/audit-logs');
+    if (res.ok) {
+      state.saasAuditLogs = await res.json();
+      renderSaasAuditTable();
+    }
+  } catch (err) {
+    console.error('Error loading audit logs:', err);
+  }
+}
+
+function renderSaasAuditTable() {
+  const tbody = document.getElementById('saasAuditTableBody');
+  if (!tbody) return;
+
+  const uFilter = (document.getElementById('auditFilterUser')?.value || '').trim().toLowerCase();
+  const bFilter = (document.getElementById('auditFilterBiz')?.value || '').trim().toLowerCase();
+  const aFilter = document.getElementById('auditFilterAction')?.value || '';
+
+  const filtered = (state.saasAuditLogs || []).filter(log => {
+    if (uFilter && !(log.user_name || '').toLowerCase().includes(uFilter)) return false;
+    if (bFilter && !(log.laundry_name || '').toLowerCase().includes(bFilter)) return false;
+    if (aFilter && log.action_type !== aFilter) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:2rem; color:#64748b;">No hay eventos administrativos registrados con estos filtros.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(l => `
+    <tr>
+      <td><small>${String(l.created_at || '').replace('T', ' ').slice(0, 19)}</small></td>
+      <td><strong>${l.user_name || 'Sistema'}</strong></td>
+      <td><span class="perm-chip">${l.action_type}</span></td>
+      <td><strong>${l.entity_type}</strong>${l.laundry_name ? ` — ${l.laundry_name}` : ''}</td>
+      <td><small style="color:#475569;">${JSON.stringify(l.details || {})}</small></td>
+    </tr>
+  `).join('');
+}
+
+// ----------------- GESTIONAR PLATAFORMA (PLANES, SUPERADMINS, ACUERDOS) -----------------
+function switchSaasPlatformSubTab(subTab) {
+  state.saasPlatformSubTab = subTab;
+  document.getElementById('saasPlansSubPane').style.display = subTab === 'plans' ? 'block' : 'none';
+  document.getElementById('saasAdminsSubPane').style.display = subTab === 'admins' ? 'block' : 'none';
+  document.getElementById('saasAgreementsSubPane').style.display = subTab === 'agreements' ? 'block' : 'none';
+  document.getElementById('btnSubTabPlans').className = subTab === 'plans' ? 'btn btn-primary' : 'btn btn-outline';
+  document.getElementById('btnSubTabSaasAdmins').className = subTab === 'admins' ? 'btn btn-primary' : 'btn btn-outline';
+  document.getElementById('btnSubTabAgreements').className = subTab === 'agreements' ? 'btn btn-primary' : 'btn btn-outline';
+  loadSaasPlatform();
+}
+
+async function loadSaasPlatform() {
+  if (!hasPerm('__superadmin__')) return;
+  try {
+    const [plansRes, dashRes, adminsRes, agRes] = await Promise.all([
+      fetch('/api/saas/plans'),
+      fetch('/api/saas/dashboard'),
+      fetch('/api/saas/admins'),
+      fetch('/api/saas/agreements')
+    ]);
+    if (plansRes.ok) state.saasPlans = await plansRes.json();
+    if (dashRes.ok) {
+      const d = await dashRes.json();
+      state.saasLaundries = d.laundries || [];
+    }
+    if (adminsRes.ok) state.saasAdmins = await adminsRes.json();
+    if (agRes.ok) state.saasAgreements = await agRes.json();
+
+    renderSaasPlansTable();
+    renderSaasAdminsTable();
+    renderSaasAgreements();
+  } catch (err) {
+    console.error('Error loading platform:', err);
+  }
+}
+
+function renderSaasPlansTable() {
+  const tbody = document.getElementById('saasPlansTableBody');
+  if (!tbody) return;
+  const menuNames = Object.fromEntries(SAAS_TENANT_MENUS.map(m => [m.id, m.label]));
+
+  tbody.innerHTML = (state.saasPlans || []).map(p => {
+    const activeCount = (state.saasLaundries || []).filter(l => Number(l.plan_id) === Number(p.id) && l.status === 'Activo').length;
+    const chips = (p.allowed_menus || []).map(id => `<span class="perm-chip">${menuNames[id] || id}</span>`).join('');
+    return `
+      <tr>
+        <td><strong>${p.name}</strong><br><small style="color:#64748b;">${p.description || ''}</small></td>
+        <td><strong style="color:#16a34a;">${formatMoney(p.price)} CLP</strong></td>
+        <td style="text-align:center;"><strong>${p.limit_users || '∞'}</strong></td>
+        <td style="text-align:center;"><strong>${p.limit_services || '∞'}</strong></td>
+        <td><div class="role-perm-chips">${chips}</div></td>
+        <td style="text-align:center;"><span class="perm-chip">${activeCount}</span></td>
+        <td style="text-align:center;">
+          <div class="table-actions">
+            <button type="button" class="btn btn-sm btn-primary" onclick="openPlanModalById(${p.id})">✏️</button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="deletePlanById(${p.id})">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openPlanModal(plan = null) {
+  document.getElementById('planModalTitle').textContent = plan ? `✏️ Editar Plan: ${plan.name}` : '💳 Crear Nuevo Plan SaaS';
+  document.getElementById('modalPlanId').value = plan ? plan.id : '';
+  document.getElementById('modalPlanName').value = plan ? plan.name : '';
+  document.getElementById('modalPlanPrice').value = plan ? plan.price : 29990;
+  document.getElementById('modalPlanLimitUsers').value = plan ? plan.limit_users : 5;
+  document.getElementById('modalPlanLimitServices').value = plan ? plan.limit_services : 100;
+  document.getElementById('modalPlanSupport').value = plan ? (plan.support_level || 'normal') : 'normal';
+  document.getElementById('modalPlanDescription').value = plan ? (plan.description || '') : '';
+
+  const selected = new Set(plan ? (plan.allowed_menus || []) : SAAS_TENANT_MENUS.map(m => m.id));
+  const grid = document.getElementById('planMenusGrid');
+  if (grid) {
+    grid.innerHTML = `
+      <div class="perm-group-box" style="grid-column: 1 / -1;">
+        <div class="perm-group-title">Módulos Disponibles para las Lavanderías con este Plan</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:0.45rem;">
+          ${SAAS_TENANT_MENUS.map(m => `
+            <label class="perm-check-label">
+              <input type="checkbox" class="plan-menu-checkbox" value="${m.id}" ${selected.has(m.id) ? 'checked' : ''}>
+              <span>${m.label}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+  document.getElementById('planFormModal').classList.add('open');
+}
+
+function openPlanModalById(id) {
+  const p = (state.saasPlans || []).find(item => Number(item.id) === Number(id));
+  if (p) openPlanModal(p);
+}
+
+function closePlanModal() {
+  document.getElementById('planFormModal')?.classList.remove('open');
+}
+
+async function savePlanModalSubmit() {
+  const id = document.getElementById('modalPlanId').value;
+  const allowed_menus = Array.from(document.querySelectorAll('.plan-menu-checkbox:checked')).map(cb => cb.value);
+  const payload = {
+    name: document.getElementById('modalPlanName').value.trim(),
+    price: Number(document.getElementById('modalPlanPrice').value) || 0,
+    limit_users: parseInt(document.getElementById('modalPlanLimitUsers').value, 10) || 0,
+    limit_services: parseInt(document.getElementById('modalPlanLimitServices').value, 10) || 0,
+    support_level: document.getElementById('modalPlanSupport').value,
+    description: document.getElementById('modalPlanDescription').value.trim(),
+    allowed_menus
+  };
+  try {
+    const res = await fetch(id ? `/api/saas/plans/${id}` : '/api/saas/plans', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error guardando plan');
+    closePlanModal();
+    await loadSaasPlatform();
+    showToast('✅ Plan guardado correctamente', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function deletePlanById(id) {
+  const p = (state.saasPlans || []).find(item => Number(item.id) === Number(id));
+  if (!confirm(`¿Eliminar el plan "${p?.name || id}"?`)) return;
+  try {
+    const res = await fetch(`/api/saas/plans/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo eliminar');
+    await loadSaasPlatform();
+    showToast('🗑️ Plan eliminado', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function renderSaasAdminsTable() {
+  const tbody = document.getElementById('saasAdminsTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = (state.saasAdmins || []).map(a => `
+    <tr>
+      <td><strong style="font-family:monospace;">@${a.username}</strong></td>
+      <td><strong>${a.full_name}</strong></td>
+      <td>${a.email || '-'}</td>
+      <td><span class="status-pill ${a.active ? 'status-ENTREGADO' : 'status-CANCELADO'}">${a.active ? '✅ Activo' : '⛔ Inactivo'}</span></td>
+      <td style="text-align:center;"><button type="button" class="btn btn-sm btn-primary" onclick="openSaasAdminModalById(${a.id})">✏️ Editar</button></td>
+    </tr>
+  `).join('');
+}
+
+function openSaasAdminModal(admin = null) {
+  document.getElementById('saasAdminModalTitle').textContent = admin ? `✏️ Editar SuperAdmin: @${admin.username}` : '👑 Nuevo Super Administrador SaaS';
+  document.getElementById('modalSaasAdminId').value = admin ? admin.id : '';
+  const uInp = document.getElementById('modalSaasAdminUsername');
+  uInp.value = admin ? admin.username : '';
+  uInp.readOnly = Boolean(admin);
+  document.getElementById('modalSaasAdminFullName').value = admin ? admin.full_name : '';
+  document.getElementById('modalSaasAdminEmail').value = admin ? (admin.email || '') : '';
+  document.getElementById('modalSaasAdminPassword').value = '';
+  document.getElementById('modalSaasAdminPasswordLabel').textContent = admin ? 'Nueva Contraseña (Opcional)' : 'Contraseña *';
+  document.getElementById('modalSaasAdminActive').checked = admin ? Boolean(admin.active) : true;
+  document.getElementById('saasAdminModal').classList.add('open');
+}
+
+function openSaasAdminModalById(id) {
+  const a = (state.saasAdmins || []).find(item => Number(item.id) === Number(id));
+  if (a) openSaasAdminModal(a);
+}
+
+function closeSaasAdminModal() {
+  document.getElementById('saasAdminModal')?.classList.remove('open');
+}
+
+async function saveSaasAdminSubmit() {
+  const id = document.getElementById('modalSaasAdminId').value;
+  const payload = {
+    username: document.getElementById('modalSaasAdminUsername').value.trim(),
+    full_name: document.getElementById('modalSaasAdminFullName').value.trim(),
+    email: document.getElementById('modalSaasAdminEmail').value.trim(),
+    password: document.getElementById('modalSaasAdminPassword').value,
+    active: document.getElementById('modalSaasAdminActive').checked
+  };
+  try {
+    const res = await fetch(id ? `/api/saas/admins/${id}` : '/api/saas/admins', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error guardando SuperAdmin');
+    closeSaasAdminModal();
+    await loadSaasPlatform();
+    showToast('✅ Super Administrador guardado', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function renderSaasAgreements() {
+  const active = (state.saasAgreements || []).find(a => a.active) || state.saasAgreements?.[0];
+  if (active) {
+    const t = document.getElementById('agreementTitleInput');
+    const c = document.getElementById('agreementContentInput');
+    if (t && !t.value) t.value = active.title;
+    if (c && !c.value) c.value = active.content;
+  }
+  const hist = document.getElementById('saasAgreementsHistory');
+  if (hist) {
+    hist.innerHTML = (state.saasAgreements || []).map(a => `
+      <div style="background:#f8fafc; border:1px solid ${a.active ? '#86efac' : '#e2e8f0'}; border-radius:8px; padding:0.75rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>${a.title} (${a.version})</strong>
+          ${a.active ? '<span class="perm-chip" style="background:#dcfce7; color:#15803d; border-color:#86efac;">Vigente</span>' : ''}
+        </div>
+        <small style="color:#64748b;">Publicado por ${a.published_by || 'SuperAdmin'} · ${String(a.created_at || '').slice(0, 10)}</small>
+      </div>
+    `).join('');
+  }
+}
+
+async function publishAgreementSubmit() {
+  const title = document.getElementById('agreementTitleInput').value.trim();
+  const version = document.getElementById('agreementVersionInput').value.trim();
+  const content = document.getElementById('agreementContentInput').value.trim();
+  try {
+    const res = await fetch('/api/saas/agreements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, version, content })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo publicar');
+    document.getElementById('agreementVersionInput').value = '';
+    await loadSaasPlatform();
+    showToast('✅ Acuerdo de privacidad publicado', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ----------------- SOPORTE SAAS (TICKETS ENTRE SEDES Y SUPERADMIN) -----------------
+async function loadSupportTickets() {
+  try {
+    const btnNew = document.getElementById('btnNewSupportTicket');
+    if (btnNew) btnNew.style.display = state.authUser?.is_superadmin ? 'none' : 'inline-flex';
+
+    const res = await fetch('/api/support/tickets');
+    if (!res.ok) return;
+    const data = await res.json();
+    state.supportTickets = data.tickets || [];
+    const s = data.summary || {};
+
+    document.getElementById('supportTotalCount').textContent = s.total || 0;
+    document.getElementById('supportPendingCount').textContent = s.pending || 0;
+    document.getElementById('supportInProgressCount').textContent = s.inProgress || 0;
+    document.getElementById('supportResolvedCount').textContent = s.resolved || 0;
+
+    state.supportUnreadCount = s.unread || 0;
+    syncHeaderAndDrawerFromAuth();
+
+    const tbody = document.getElementById('supportTicketsTableBody');
+    if (!tbody) return;
+    if (state.supportTickets.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:#64748b;">No hay tickets de soporte registrados.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = state.supportTickets.map(t => {
+      const statusCls = t.status === 'RESOLVED' ? 'status-ENTREGADO' : (t.status === 'IN_PROGRESS' ? 'status-EN_LAVADO' : 'status-RECIBIDO');
+      return `
+        <tr>
+          <td><strong>#${t.id}</strong></td>
+          <td><strong>${t.laundry_name}</strong></td>
+          <td><strong>${t.subject}</strong><br><small style="color:#64748b;">Por: ${t.created_by_name}</small></td>
+          <td><span class="perm-chip">${t.category}</span> · <small>${t.priority}</small></td>
+          <td><span class="status-pill ${statusCls}">${t.status}</span></td>
+          <td><small>${String(t.updated_at || '').slice(0, 16).replace('T', ' ')}</small></td>
+          <td style="text-align:center;"><button type="button" class="btn btn-sm btn-primary" onclick="openSupportTicketById(${t.id})">💬 Abrir</button></td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error loading support:', err);
+  }
+}
+
+function openSupportCreateModal() {
+  document.getElementById('supportSubjectInput').value = '';
+  document.getElementById('supportMessageInput').value = '';
+  document.getElementById('supportCreateModal').classList.add('open');
+}
+
+function closeSupportCreateModal() {
+  document.getElementById('supportCreateModal')?.classList.remove('open');
+}
+
+async function submitNewSupportTicket() {
+  const payload = {
+    subject: document.getElementById('supportSubjectInput').value.trim(),
+    category: document.getElementById('supportCategorySelect').value,
+    priority: document.getElementById('supportPrioritySelect').value,
+    message: document.getElementById('supportMessageInput').value.trim()
+  };
+  try {
+    const res = await fetch('/api/support/tickets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo enviar ticket');
+    closeSupportCreateModal();
+    await loadSupportTickets();
+    showToast('✅ Ticket de soporte enviado', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function openSupportTicketById(id) {
+  try {
+    const res = await fetch(`/api/support/tickets/${id}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error abriendo ticket');
+
+    const t = data.ticket;
+    document.getElementById('activeSupportTicketId').value = t.id;
+    document.getElementById('supportTicketModalTitle').textContent = `🎧 Ticket #${t.id}: ${t.subject}`;
+    document.getElementById('supportReplyInput').value = '';
+
+    const metaBar = document.getElementById('supportTicketMetaBar');
+    if (metaBar) {
+      const statusSel = state.authUser?.is_superadmin
+        ? `<select class="form-control" style="width:auto; font-weight:700;" onchange="updateSupportTicketStatus(${t.id}, this.value)">
+             <option value="PENDING" ${t.status === 'PENDING' ? 'selected' : ''}>⏳ Pendiente</option>
+             <option value="IN_PROGRESS" ${t.status === 'IN_PROGRESS' ? 'selected' : ''}>🛠️ En Atención</option>
+             <option value="RESOLVED" ${t.status === 'RESOLVED' ? 'selected' : ''}>✅ Resuelto</option>
+           </select>`
+        : `<span class="perm-chip">${t.status}</span>`;
+      metaBar.innerHTML = `<span><strong>Sede:</strong> ${t.laundry_name} · ${t.category}</span>${statusSel}`;
+    }
+
+    const msgBox = document.getElementById('supportMessagesBox');
+    if (msgBox) {
+      msgBox.innerHTML = (data.messages || []).map(m => `
+        <div class="support-msg-bubble ${m.sender_role === 'SUPER_ADMIN' ? 'from-superadmin' : 'from-tenant'}">
+          <div style="font-size:0.75rem; font-weight:800; color:#475569; margin-bottom:0.2rem;">
+            ${m.sender_name} (${m.sender_role === 'SUPER_ADMIN' ? 'Soporte SaaS' : 'Lavandería'})
+          </div>
+          <div>${m.message}</div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('supportTicketModal').classList.add('open');
+    await loadSupportTickets();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function closeSupportTicketModal() {
+  document.getElementById('supportTicketModal')?.classList.remove('open');
+}
+
+async function sendSupportReply() {
+  const id = document.getElementById('activeSupportTicketId').value;
+  const message = document.getElementById('supportReplyInput').value.trim();
+  if (!message) return;
+  try {
+    const res = await fetch(`/api/support/tickets/${id}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al responder');
+    await openSupportTicketById(id);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function updateSupportTicketStatus(id, status) {
+  try {
+    const res = await fetch(`/api/support/tickets/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) throw new Error('Error cambiando estado');
+    showToast(`Estado actualizado a ${status}`, 'success');
+    await loadSupportTickets();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+
+// ==================== AJUSTES DE LA LAVANDERÍA (DATOS Y LOGO PERSONALIZADO) ====================
+
+function populateLaundrySettingsForm() {
+  const cfg = state.laundry || state.config || {};
+  state.settingsDraftLogo = cfg.logo_url || '';
+
+  const preview = document.getElementById('settingsLogoPreview');
+  if (preview) preview.src = state.settingsDraftLogo || '/assets/logo.jpeg';
+
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val || '';
+  };
+
+  setVal('settingsName', cfg.name);
+  setVal('settingsSlogan', cfg.slogan);
+  setVal('settingsRut', sanitizeRut(cfg.rut || ''));
+  setVal('settingsPhone', cfg.phone);
+  setVal('settingsInstagram', cfg.instagram);
+  setVal('settingsAddress', cfg.address);
+  setVal('settingsEmail', cfg.email);
+  setVal('settingsTerms', cfg.terms);
+
+  const fileInput = document.getElementById('settingsLogoFileInput');
+  if (fileInput) fileInput.value = '';
+}
+
+function handleSettingsLogoFileChange(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('Por favor selecciona un archivo de imagen válido (PNG, JPG, WEBP o GIF).', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 380;
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width >= height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const outputType = (file.type === 'image/png' || file.type === 'image/webp') ? 'image/png' : 'image/jpeg';
+      const dataUrl = outputType === 'image/jpeg'
+        ? canvas.toDataURL('image/jpeg', 0.88)
+        : canvas.toDataURL('image/png');
+
+      state.settingsDraftLogo = dataUrl;
+      const preview = document.getElementById('settingsLogoPreview');
+      if (preview) preview.src = dataUrl;
+      showToast('Vista previa del logo cargada. Haz clic en "Guardar Datos y Logo" para aplicar.', 'success');
+    };
+    img.onerror = () => showToast('No se pudo leer la imagen seleccionada.', 'error');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetLaundryLogoToDefault() {
+  state.settingsDraftLogo = '';
+  const preview = document.getElementById('settingsLogoPreview');
+  if (preview) preview.src = '/assets/logo.jpeg';
+  const fileInput = document.getElementById('settingsLogoFileInput');
+  if (fileInput) fileInput.value = '';
+  showToast('Logo predeterminado seleccionado. Guarda para confirmar.', 'success');
+}
+
+async function saveLaundrySettingsSubmit() {
+  const btn = document.getElementById('btnSaveLaundrySettings');
+  const payload = {
+    name: (document.getElementById('settingsName')?.value || '').trim(),
+    slogan: (document.getElementById('settingsSlogan')?.value || '').trim(),
+    rut: sanitizeRut(document.getElementById('settingsRut')?.value || ''),
+    phone: (document.getElementById('settingsPhone')?.value || '').trim(),
+    instagram: (document.getElementById('settingsInstagram')?.value || '').trim().replace(/^@/, ''),
+    address: (document.getElementById('settingsAddress')?.value || '').trim(),
+    email: (document.getElementById('settingsEmail')?.value || '').trim(),
+    terms: document.getElementById('settingsTerms')?.value || '',
+    logo_url: state.settingsDraftLogo !== null ? state.settingsDraftLogo : (state.laundry?.logo_url || '')
+  };
+
+  if (!payload.name) {
+    showToast('El nombre de la lavandería es obligatorio.', 'error');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Guardando...';
+  }
+
+  try {
+    const res = await fetch('/api/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const updated = await res.json();
+    if (!res.ok) throw new Error(updated.error || 'No se pudieron guardar los ajustes.');
+
+    state.config = updated;
+    state.laundry = { ...(state.laundry || {}), ...updated };
+    syncHeaderAndDrawerFromAuth();
+    showToast('✅ Datos y logo de tu lavandería actualizados correctamente', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '💾 Guardar Datos y Logo';
+    }
   }
 }
